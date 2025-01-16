@@ -17,10 +17,11 @@ async fn test_handler() {
         .write_all(b"GET / HTTP/1.1\r\n\r\n")
         .await
         .unwrap();
-    service.call((server_reader, server_writer)).await.unwrap();
+    let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
     client_reader.read(&mut buffer).await.unwrap();
     assert_eq!(buffer, b"HTTP/1.1 200 OK\r\n\r\n");
+    task.await.unwrap().unwrap();
 }
 
 #[derive(Clone)]
@@ -29,7 +30,7 @@ pub struct TestService;
 impl Service<HTTP1Request> for TestService {
     type Response = HTTP1Response;
     type Error = ();
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
