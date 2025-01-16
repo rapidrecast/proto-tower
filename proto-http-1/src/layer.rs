@@ -50,7 +50,7 @@ where
             let mut buffer = Vec::with_capacity(1024);
             let mut temp_buf = [0u8; 1024];
             // Read all input
-            while let Ok(n) = reader.read(&mut temp_buf).await {
+            while let Ok(n) = dbg!(reader.read(&mut temp_buf).await) {
                 if n == 0 {
                     break;
                 }
@@ -61,14 +61,16 @@ where
             // Validate request
             let req = HTTP1Request {};
             // Invoke handler
-            let res = service.call(req).await?;
+            let res = dbg!(service.call(req).await?);
             // Send response
-            writer.write_all("This is a response".as_bytes()).await.unwrap();
+            writer.write_all("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).await.unwrap();
             Ok(())
         })
     }
 }
 
+#[derive(Debug)]
 pub struct HTTP1Request {}
 
+#[derive(Debug)]
 pub struct HTTP1Response {}
