@@ -55,6 +55,8 @@ where
                     break;
                 }
                 buffer.extend_from_slice(&temp_buf[..n]);
+                // TODO fix this, since the loop is infinite as the tests don't "close" the connection
+                break;
             }
             // Validate request
             let req = HTTP1Request {};
