@@ -75,16 +75,31 @@ pub struct HTTP1Request {}
 #[derive(Debug)]
 pub struct HTTP1Response {
     pub status: http::StatusCode,
+    pub headers: http::HeaderMap,
+    pub body: Vec<u8>,
 }
 
 impl HTTP1Response {
     pub async fn write_onto<WRITER: AsyncWriteExt + Send + Unpin + 'static>(&self, mut writer: WRITER) {
+        // RESPONSE
         const VERSION: &[u8] = "HTTP/1.1".as_bytes();
         writer.write_all(VERSION).await.unwrap();
         writer.write_all(" ".as_bytes()).await.unwrap();
         writer.write_all(self.status.as_str().as_bytes()).await.unwrap();
         writer.write_all(" ".as_bytes()).await.unwrap();
         writer.write_all(self.status.canonical_reason().unwrap_or("UNKNOWN REASON").as_bytes()).await.unwrap();
-        writer.write_all("\r\n\r\n".as_bytes()).await.unwrap();
+        writer.write_all("\r\n".as_bytes()).await.unwrap();
+
+        // HEADERS
+        writer.write_all("\r\n".as_bytes()).await.unwrap();
+        for (k, v) in self.headers.iter() {
+            writer.write_all(k.as_str().as_bytes()).await.unwrap();
+            writer.write_all(": ".as_bytes()).await.unwrap();
+            writer.write_all(v.as_bytes()).await.unwrap();
+            writer.write_all("\r\n".as_bytes()).await.unwrap();
+        }
+
+        // BODY
+        writer.write_all(&self.body).await.unwrap();
     }
 }
