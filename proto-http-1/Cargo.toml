@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+http = "1.2.0"
 tokio = { version = "1.43.0", features = ["io-util"] }
 tower = "0.5.2"
 

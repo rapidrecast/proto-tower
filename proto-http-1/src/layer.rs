@@ -50,7 +50,7 @@ where
             let mut buffer = Vec::with_capacity(1024);
             let mut temp_buf = [0u8; 1024];
             // Read all input
-            while let Ok(n) = dbg!(reader.read(&mut temp_buf).await) {
+            while let Ok(n) = reader.read(&mut temp_buf).await {
                 if n == 0 {
                     break;
                 }
@@ -63,7 +63,7 @@ where
             // Invoke handler
             let res = dbg!(service.call(req).await?);
             // Send response
-            writer.write_all("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).await.unwrap();
+            res.write_onto(writer).await;
             Ok(())
         })
     }
@@ -73,4 +73,18 @@ where
 pub struct HTTP1Request {}
 
 #[derive(Debug)]
-pub struct HTTP1Response {}
+pub struct HTTP1Response {
+    pub status: http::StatusCode,
+}
+
+impl HTTP1Response {
+    pub async fn write_onto<WRITER: AsyncWriteExt + Send + Unpin + 'static>(&self, mut writer: WRITER) {
+        const VERSION: &[u8] = "HTTP/1.1".as_bytes();
+        writer.write_all(VERSION).await.unwrap();
+        writer.write_all(" ".as_bytes()).await.unwrap();
+        writer.write_all(self.status.as_str().as_bytes()).await.unwrap();
+        writer.write_all(" ".as_bytes()).await.unwrap();
+        writer.write_all(self.status.canonical_reason().unwrap_or("UNKNOWN REASON").as_bytes()).await.unwrap();
+        writer.write_all("\r\n\r\n".as_bytes()).await.unwrap();
+    }
+}

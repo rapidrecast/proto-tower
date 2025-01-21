@@ -39,6 +39,6 @@ impl Service<HTTP1Request> for TestService {
     }
 
     fn call(&mut self, req: HTTP1Request) -> Self::Future {
-        Box::pin(async move { Ok(HTTP1Response {}) })
+        Box::pin(async move { Ok(HTTP1Response { status: http::StatusCode::OK }) })
     }
 }
