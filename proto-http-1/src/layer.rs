@@ -2,9 +2,11 @@ use std::future::Future;
 use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::time::Duration;
 use http::Uri;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::Service;
+use crate::parser::{parse_request, Http1ParseError};
 
 /// A service to process HTTP/1.1 requests
 ///
@@ -56,31 +58,45 @@ where
             let mut temp_buf = [0u8; 1024];
             // Read all input
             while last_time+config.timeout > std::time::Instant::now() {
-                match reader.read(&mut temp_buf).await {
-                    Ok(n) => {
-                        if n == 0 {
-                            break;
-                        }
-                        last_time = std::time::Instant::now();
-                        buffer.extend_from_slice(&temp_buf[..n]);
+                tokio::select! {
+                    _ = tokio::time::sleep(config.timeout) => {
+                        // no-op, timeout reached and loop won't rerun
                     }
-                    Err(_) => {
-                        break;
+                    n = reader.read(&mut temp_buf) => {
+                        match n {
+                            Ok(n) => {
+                                if n != 0 {
+                                    last_time = std::time::Instant::now();
+                                    buffer.extend_from_slice(&temp_buf[..n]);
+                                }
+                            }
+                            Err(_) => {
+                                last_time = std::time::Instant::now()-config.timeout-Duration::from_secs(1);
+                            }
+                        }
                     }
                 }
             }
             // Validate request
-            let req = HTTP1Request {
-                path: Default::default(),
-                method: Default::default(),
-                headers: Default::default(),
-                body: vec![],
-            };
-            // Invoke handler
-            let res = dbg!(service.call(req).await?);
-            // Send response
-            res.write_onto(writer).await;
-            Ok(())
+            match parse_request(&buffer) {
+                Ok(partial_resul) => {
+                    match partial_resul {
+                        Ok(req) => {
+                            // Invoke handler
+                            let res = dbg!(service.call(req).await?);
+                            // Send response
+                            res.write_onto(writer).await;
+                            Ok(())
+                        }
+                        Err((req, errs)) => {
+                            todo!()
+                        }
+                    }
+                }
+                Err(e) => {
+                    panic!("{}", e);
+                }
+            }
         })
     }
 }

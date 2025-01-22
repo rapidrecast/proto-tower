@@ -3,6 +3,7 @@ use crate::make_layer::ProtoHttp1MakeLayer;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::{Service, ServiceBuilder};
 
@@ -13,7 +14,7 @@ async fn test_handler() {
     let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
         max_header_size: 0,
         max_body_size: 0,
-        timeout: Default::default(),
+        timeout: Duration::from_millis(200),
     })).service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
@@ -37,7 +38,7 @@ async fn test_path() {
     let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
         max_header_size: 0,
         max_body_size: 0,
-        timeout: Default::default(),
+        timeout: Duration::from_millis(200),
     })).service(TestService);
     client_writer.write_all(b"GET /path/abc HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
@@ -61,7 +62,7 @@ async fn test_headers() {
     let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
         max_header_size: 0,
         max_body_size: 0,
-        timeout: Default::default(),
+        timeout: Duration::from_millis(200),
     })).service(TestService);
     client_writer.write_all(b"GET /header HTTP/1.1\r\nHost: localhost\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
@@ -85,7 +86,7 @@ async fn test_body() {
     let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
         max_header_size: 0,
         max_body_size: 0,
-        timeout: Default::default(),
+        timeout: Duration::from_millis(200),
     })).service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\nHello, World!").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));

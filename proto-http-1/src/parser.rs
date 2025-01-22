@@ -1,3 +1,5 @@
+use std::str::FromStr;
+use http::Uri;
 use crate::layer::HTTP1Request;
 use parser_helper::ParseHelper;
 
@@ -6,14 +8,28 @@ pub enum Http1ParseError {
 
 }
 
+/// Parse request input, returning either a full error or the successful result or partial error
 pub fn parse_request(input: &[u8]) -> Result<Result<HTTP1Request, (HTTP1Request, Vec<Http1ParseError>)>, &'static str> {
-    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, b" \t"), 0, "We should never error since 0-size is valid").unwrap();
+    const WHITESPACE: &[u8] = b" \t";
+    const PATH_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%";
+    dbg!(input);
+    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 0, "Failed reading whitespace before method - should never happen").unwrap();
     let (method, input) = get_method(input)?;
+    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after method")?;
+    let (path, input) = input.take_largest_err(|i| just_charset(i, PATH_CHARSET), 1, "We expected at least one character for the path")?;
+    let path = std::str::from_utf8(path).map_err(|_| "Failed to parse path")?;
+    let path = Uri::from_str(path).map_err(|_| "Failed to parse path")?;
+    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after path")?;
+    let (_version, input) = input.take_expect_err(b"HTTP/1.1\r\n", "Expected version to be HTTP/1.1 with \\r\\n after")?;
+    let (_header_block, input) = input.take_until_err(b"\r\n\r\n", "Expected header block to end with \\r\\n\\r\\n")?;
+    let (_separator, body_block) = input.take_expect_err(b"\r\n\r\n", "Expected body block to start with \\r\\n")?;
+    let body = body_block.to_vec();
+
     Ok(Ok(HTTP1Request {
-        path: Default::default(),
+        path,
         method,
         headers: Default::default(),
-        body: vec![],
+        body,
     }))
 }
 
@@ -62,10 +78,7 @@ fn is_method(input: &[u8]) -> bool {
 
 /// True if the input is just the character set
 fn just_charset(input: &[u8], charset: &[u8]) -> bool {
-    if input.len() == 0 {
-        return true;
-    }
-    for i in 0..charset.len() {
+    for i in 0..input.len() {
         if !charset.contains(&input[i]) {
             return false;
         }
@@ -79,10 +92,12 @@ mod test {
 
     #[test]
     fn can_parse_request() {
-        let input = b"CONNECT / HTTP/1.1\r\nHost: localhost\r\n\r\n";
+        let input = b"CONNECT /some/path?param=123&other=456 HTTP/1.1\r\nHost: localhost\r\n\r\nSome BODY";
         let res = parse_request(input);
         let res = res.unwrap();
         let res = res.unwrap();
         assert_eq!(res.method, http::Method::CONNECT);
+        assert_eq!(res.path, http::Uri::from_static("/some/path?param=123&other=456"));
+        assert_eq!(res.body, b"Some BODY");
     }
 }

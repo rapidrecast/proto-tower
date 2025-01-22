@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 http = "1.2.0"
-tokio = { version = "1.43.0", features = ["io-util"] }
+tokio = { version = "1.43.0", features = ["io-util", "time"] }
 tower = "0.5.2"
 parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main"}
 
