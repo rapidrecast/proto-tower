@@ -1,6 +1,8 @@
 use std::future::Future;
+use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use http::Uri;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::Service;
 
@@ -11,6 +13,7 @@ pub struct ProtoHttp1Layer<SERVICE>
 where
     SERVICE: Service<HTTP1Request, Response = HTTP1Response> + Send + Clone,
 {
+    config: ProtoHttp1Config,
     /// The inner service to process requests
     inner: SERVICE,
 }
@@ -20,8 +23,8 @@ where
     SERVICE: Service<HTTP1Request, Response = HTTP1Response> + Send + Clone,
 {
     /// Create a new instance of the service
-    pub fn new(inner: SERVICE) -> Self {
-        ProtoHttp1Layer { inner }
+    pub fn new(config: ProtoHttp1Config,inner: SERVICE) -> Self {
+        ProtoHttp1Layer { config, inner }
     }
 }
 
@@ -46,20 +49,33 @@ where
     /// Indefinitely process the protocol
     fn call(&mut self, (mut reader, mut writer): (READER, WRITER)) -> Self::Future {
         let mut service = self.inner.clone();
+        let config = self.config.clone();
         Box::pin(async move {
+            let mut last_time = std::time::Instant::now();
             let mut buffer = Vec::with_capacity(1024);
             let mut temp_buf = [0u8; 1024];
             // Read all input
-            while let Ok(n) = reader.read(&mut temp_buf).await {
-                if n == 0 {
-                    break;
+            while last_time+config.timeout > std::time::Instant::now() {
+                match reader.read(&mut temp_buf).await {
+                    Ok(n) => {
+                        if n == 0 {
+                            break;
+                        }
+                        last_time = std::time::Instant::now();
+                        buffer.extend_from_slice(&temp_buf[..n]);
+                    }
+                    Err(_) => {
+                        break;
+                    }
                 }
-                buffer.extend_from_slice(&temp_buf[..n]);
-                // TODO fix this, since the loop is infinite as the tests don't "close" the connection
-                break;
             }
             // Validate request
-            let req = HTTP1Request {};
+            let req = HTTP1Request {
+                path: Default::default(),
+                method: Default::default(),
+                headers: Default::default(),
+                body: vec![],
+            };
             // Invoke handler
             let res = dbg!(service.call(req).await?);
             // Send response
@@ -69,8 +85,20 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct ProtoHttp1Config {
+    pub max_header_size: usize,
+    pub max_body_size: usize,
+    pub timeout: std::time::Duration,
+}
+
 #[derive(Debug)]
-pub struct HTTP1Request {}
+pub struct HTTP1Request {
+    pub path: Uri,
+    pub method: http::Method,
+    pub headers: http::HeaderMap,
+    pub body: Vec<u8>,
+}
 
 #[derive(Debug)]
 pub struct HTTP1Response {
