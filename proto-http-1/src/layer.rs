@@ -1,6 +1,7 @@
 use crate::parser::parse_request;
 use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
 use std::future::Future;
+use std::marker::PhantomData;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
@@ -10,26 +11,32 @@ use tower::Service;
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
-pub struct ProtoHttp1Layer<SERVICE>
+pub struct ProtoHttp1Layer<SERVICE, READER, WRITER>
 where
     SERVICE: Service<HTTP1Request, Response=HTTP1Response> + Send + Clone,
+    READER: AsyncReadExt + Send + Unpin + 'static,
+    WRITER: AsyncWriteExt + Send + Unpin + 'static,
 {
     config: ProtoHttp1Config,
     /// The inner service to process requests
     inner: SERVICE,
+    phantom_reader: PhantomData<READER>,
+    phantom_writer: PhantomData<WRITER>,
 }
 
-impl<SERVICE> ProtoHttp1Layer<SERVICE>
+impl<SERVICE, READER, WRITER> ProtoHttp1Layer<SERVICE, READER, WRITER>
 where
     SERVICE: Service<HTTP1Request, Response=HTTP1Response> + Send + Clone,
+    READER: AsyncReadExt + Send + Unpin + 'static,
+    WRITER: AsyncWriteExt + Send + Unpin + 'static,
 {
     /// Create a new instance of the service
     pub fn new(config: ProtoHttp1Config, inner: SERVICE) -> Self {
-        ProtoHttp1Layer { config, inner }
+        ProtoHttp1Layer { config, inner, phantom_reader: PhantomData, phantom_writer: PhantomData }
     }
 }
 
-impl<READER, WRITER, SERVICE, ERROR, SVC_FUT> Service<(READER, WRITER)> for ProtoHttp1Layer<SERVICE>
+impl<READER, WRITER, SERVICE, ERROR, SVC_FUT> Service<(READER, WRITER)> for ProtoHttp1Layer<SERVICE, READER, WRITER>
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
@@ -82,7 +89,7 @@ where
                     match partial_resul {
                         Ok(req) => {
                             // Invoke handler
-                            let res = dbg!(service.call(req).await?);
+                            let res = service.call(req).await?;
                             // Send response
                             res.write_onto(writer).await;
                             Ok(())

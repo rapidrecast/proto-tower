@@ -1,5 +1,5 @@
-use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
 use crate::make_layer::ProtoHttp1MakeLayer;
+use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -11,11 +11,11 @@ use tower::{Service, ServiceBuilder};
 async fn test_handler() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
-    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
+    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    })).service(TestService);
+    }, None)).service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -35,11 +35,11 @@ async fn test_handler() {
 async fn test_path() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
-    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
+    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    })).service(TestService);
+    }, None)).service(TestService);
     client_writer.write_all(b"GET /path/abc HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -59,11 +59,11 @@ async fn test_path() {
 async fn test_headers() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
-    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
+    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    })).service(TestService);
+    }, None)).service(TestService);
     client_writer.write_all(b"GET /header HTTP/1.1\r\nHost: localhost\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -83,11 +83,11 @@ async fn test_headers() {
 async fn test_body() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
-    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config{
+    let mut service = ServiceBuilder::new().layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    })).service(TestService);
+    }, None)).service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\nHello, World!").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -108,15 +108,20 @@ async fn test_multipart() {
     todo!()
 }
 
+#[tokio::test]
+async fn test_protocol_upgrade() {
+    todo!()
+}
+
 #[derive(Clone)]
 pub struct TestService;
 
 impl Service<HTTP1Request> for TestService {
     type Response = HTTP1Response;
     type Error = ();
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 

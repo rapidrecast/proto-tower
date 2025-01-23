@@ -1,18 +1,15 @@
-use std::str::FromStr;
-use http::Uri;
 use crate::HTTP1Request;
+use http::Uri;
 use parser_helper::ParseHelper;
+use std::str::FromStr;
 
 #[derive(Debug)]
-pub enum Http1ParseError {
-
-}
+pub enum Http1ParseError {}
 
 /// Parse request input, returning either a full error or the successful result or partial error
 pub fn parse_request(input: &[u8]) -> Result<Result<HTTP1Request, (HTTP1Request, Vec<Http1ParseError>)>, &'static str> {
     const WHITESPACE: &[u8] = b" \t";
     const PATH_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%";
-    dbg!(input);
     let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 0, "Failed reading whitespace before method - should never happen").unwrap();
     let (method, input) = get_method(input)?;
     let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after method")?;
@@ -48,7 +45,7 @@ fn get_method(input: &[u8]) -> Result<(http::Method, &[u8]), &'static str> {
         b"CONNECT" => http::Method::CONNECT,
         _ => return Err("Invalid method"),
     };
-    Ok ((method, rem))
+    Ok((method, rem))
 }
 
 /// True if the input starts with a method
