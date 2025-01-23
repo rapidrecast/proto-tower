@@ -10,16 +10,18 @@ pub enum Http1ParseError {}
 pub fn parse_request(input: &[u8]) -> Result<Result<HTTP1Request, (HTTP1Request, Vec<Http1ParseError>)>, &'static str> {
     const WHITESPACE: &[u8] = b" \t";
     const PATH_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%";
-    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 0, "Failed reading whitespace before method - should never happen").unwrap();
-    let (method, input) = get_method(input)?;
-    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after method")?;
-    let (path, input) = input.take_largest_err(|i| just_charset(i, PATH_CHARSET), 1, "We expected at least one character for the path")?;
+    eprintln!("input: {}", String::from_utf8_lossy(input).replace("\r", "\\r").replace("\n", "\\n"));
+    let (header_block, body_block) = input.take_until_err(b"\r\n\r\n", "Expected header block to end with \\r\\n\\r\\n")?;
+    let (_separator, body_block) = body_block.take_expect_err(b"\r\n\r\n", "Expected body block to start with \\r\\n")?;
+
+    let (_whitespace, header_block) = header_block.take_largest_err(|i| just_charset(i, WHITESPACE), 0, "Failed reading whitespace before method - should never happen").unwrap();
+    let (method, header_block) = get_method(input)?;
+    let (_whitespace, header_block) = header_block.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after method")?;
+    let (path, header_block) = header_block.take_largest_err(|i| just_charset(i, PATH_CHARSET), 1, "We expected at least one character for the path")?;
     let path = std::str::from_utf8(path).map_err(|_| "Failed to parse path")?;
     let path = Uri::from_str(path).map_err(|_| "Failed to parse path")?;
-    let (_whitespace, input) = input.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after path")?;
-    let (_version, input) = input.take_expect_err(b"HTTP/1.1\r\n", "Expected version to be HTTP/1.1 with \\r\\n after")?;
-    let (_header_block, input) = input.take_until_err(b"\r\n\r\n", "Expected header block to end with \\r\\n\\r\\n")?;
-    let (_separator, body_block) = input.take_expect_err(b"\r\n\r\n", "Expected body block to start with \\r\\n")?;
+    let (_whitespace, header_block) = header_block.take_largest_err(|i| just_charset(i, WHITESPACE), 1, "Expected whitespace after path")?;
+    let (_version, _header_block) = header_block.take_expect_err(b"HTTP/1.1\r\n", "Expected version to be HTTP/1.1 with \\r\\n after")?;
     let body = body_block.to_vec();
 
     Ok(Ok(HTTP1Request {
