@@ -1,6 +1,6 @@
 use crate::parser::parse_request;
 use crate::{HTTP1Event, HTTP1Response, ProtoHttp1Config};
-use http::HeaderName;
+use http::header::{CONNECTION, UPGRADE};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;
@@ -16,7 +16,7 @@ pub struct ProtoHttp1Layer<SERVICE, READER, WRITER>
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
-    SERVICE: Service<HTTP1Event<READER, WRITER>, Response=HTTP1Response> + Send + Clone,
+    SERVICE: Service<HTTP1Event<READER, WRITER>, Response = HTTP1Response> + Send + Clone,
 {
     config: ProtoHttp1Config,
     /// The inner service to process requests
@@ -29,11 +29,16 @@ impl<SERVICE, READER, WRITER> ProtoHttp1Layer<SERVICE, READER, WRITER>
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
-    SERVICE: Service<HTTP1Event<READER, WRITER>, Response=HTTP1Response> + Send + Clone,
+    SERVICE: Service<HTTP1Event<READER, WRITER>, Response = HTTP1Response> + Send + Clone,
 {
     /// Create a new instance of the service
     pub fn new(config: ProtoHttp1Config, inner: SERVICE) -> Self {
-        ProtoHttp1Layer { config, inner, reader_phantom: PhantomData, writer_phantom: PhantomData }
+        ProtoHttp1Layer {
+            config,
+            inner,
+            reader_phantom: PhantomData,
+            writer_phantom: PhantomData,
+        }
     }
 }
 
@@ -41,15 +46,15 @@ impl<READER, WRITER, SERVICE, ERROR, SVC_FUT> Service<(READER, WRITER)> for Prot
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
-    SERVICE: Service<HTTP1Event<READER, WRITER>, Response=HTTP1Response, Error=ERROR, Future=SVC_FUT> + Send + Clone + 'static,
-    SVC_FUT: Future<Output=Result<HTTP1Response, ERROR>> + Send,
+    SERVICE: Service<HTTP1Event<READER, WRITER>, Response = HTTP1Response, Error = ERROR, Future = SVC_FUT> + Send + Clone + 'static,
+    SVC_FUT: Future<Output = Result<HTTP1Response, ERROR>> + Send,
 {
     /// The response is handled by the protocol
     type Response = ();
     /// Errors would be failures in parsing the protocol - this should be handled by the protocol
     type Error = ERROR;
     /// The future is the protocol itself
-    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -67,17 +72,20 @@ where
             while last_time + config.timeout > std::time::Instant::now() {
                 tokio::select! {
                     _ = tokio::time::sleep(config.timeout) => {
-                        // no-op, timeout reached and loop won't rerun
+                        let condition = last_time + config.timeout > std::time::Instant::now();
+                        eprintln!("Timeout reached: condition={}", condition);
                     }
                     n = reader.read(&mut temp_buf) => {
                         match n {
                             Ok(n) => {
                                 if n != 0 {
+                                    eprintln!("Read {} bytes", n);
                                     last_time = std::time::Instant::now();
                                     buffer.extend_from_slice(&temp_buf[..n]);
                                 }
                             }
                             Err(_) => {
+                                eprintln!("Error reading, failing timeout artificially");
                                 last_time = std::time::Instant::now()-config.timeout-Duration::from_secs(1);
                             }
                         }
@@ -90,13 +98,13 @@ where
                     match partial_result {
                         Ok(req) => {
                             // Invoke handler
+                            eprintln!("Invoking handler");
                             let res = service.call(HTTP1Event::Request(req.clone())).await?;
                             // Send response
                             eprintln!("Sending response");
                             res.write_onto(&mut writer).await;
                             eprintln!("Response sent");
-                            if res.headers.contains_key(&HeaderName::from_static("Upgrade")) &&
-                                res.headers.get(&HeaderName::from_static("Connection")).unwrap() == "Upgrade" {
+                            if res.headers.contains_key(&UPGRADE) && res.headers.contains_key(&CONNECTION) && res.headers.get(CONNECTION).unwrap() == "Upgrade" {
                                 // Upgrade protocol
                                 eprintln!("Upgrading protocol");
                                 service.call(HTTP1Event::ProtocolUpgrade(req, res, (reader, writer))).await?;
@@ -115,4 +123,3 @@ where
         })
     }
 }
-
