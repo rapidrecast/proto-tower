@@ -1,5 +1,6 @@
 use crate::parser::parse_request;
 use crate::{HTTP1Event, HTTP1Response, ProtoHttp1Config};
+use http::HeaderName;
 use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;
@@ -85,13 +86,21 @@ where
             }
             // Validate request
             match parse_request(&buffer) {
-                Ok(partial_resul) => {
-                    match partial_resul {
+                Ok(partial_result) => {
+                    match partial_result {
                         Ok(req) => {
                             // Invoke handler
-                            let res = service.call(HTTP1Event::Request(req)).await?;
+                            let res = service.call(HTTP1Event::Request(req.clone())).await?;
                             // Send response
-                            res.write_onto(writer).await;
+                            eprintln!("Sending response");
+                            res.write_onto(&mut writer).await;
+                            eprintln!("Response sent");
+                            if res.headers.contains_key(&HeaderName::from_static("Upgrade")) &&
+                                res.headers.get(&HeaderName::from_static("Connection")).unwrap() == "Upgrade" {
+                                // Upgrade protocol
+                                eprintln!("Upgrading protocol");
+                                service.call(HTTP1Event::ProtocolUpgrade(req, res, (reader, writer))).await?;
+                            }
                             Ok(())
                         }
                         Err((req, errs)) => {

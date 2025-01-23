@@ -21,11 +21,12 @@ where
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
 {
     Request(HTTP1Request),
-    ProtocolUpgrade((READER, WRITER)),
+    /// A protocol upgrade including the original request and subsequent response
+    ProtocolUpgrade(HTTP1Request, HTTP1Response, (READER, WRITER)),
 }
 
 /// An HTTP/1.1 request
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HTTP1Request {
     pub path: Uri,
     pub method: http::Method,
@@ -42,7 +43,7 @@ pub struct HTTP1Response {
 }
 
 impl HTTP1Response {
-    pub async fn write_onto<WRITER: AsyncWriteExt + Send + Unpin + 'static>(&self, mut writer: WRITER) {
+    pub async fn write_onto<WRITER: AsyncWriteExt + Send + Unpin + 'static>(&self, writer: &mut WRITER) {
         // RESPONSE
         const VERSION: &[u8] = "HTTP/1.1".as_bytes();
         writer.write_all(VERSION).await.unwrap();
