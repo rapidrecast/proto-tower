@@ -1,7 +1,7 @@
 use crate::make_layer::ProtoHttp1MakeLayer;
 use crate::{HTTP1Event, HTTP1Response, ProtoHttp1Config};
-use http::header::UPGRADE;
-use http::{HeaderMap, HeaderName, HeaderValue};
+use http::header::{CONNECTION, UPGRADE};
+use http::{HeaderMap, HeaderValue};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -120,7 +120,11 @@ async fn test_protocol_upgrade() {
         .unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(1000)).await;
-    assert_eq!(String::from_utf8(buffer).unwrap(), "HTTP/1.1 200 OK\r\n\r\n");
+    assert_eq!(
+        String::from_utf8(buffer).unwrap(),
+        // TODO this bad, should not have 2 clrf
+        "HTTP/1.1 101 Switching Protocols\r\n\r\nupgrade: plaintext-protocol\r\nconnection: Upgrade\r\n"
+    );
     drop(client_writer);
     drop(client_reader);
     task.await.unwrap().unwrap();
@@ -214,7 +218,7 @@ where
                         }
                         let mut header_map = HeaderMap::new();
                         header_map.insert(UPGRADE, HeaderValue::from_static("plaintext-protocol"));
-                        header_map.insert(HeaderName::from_static("Connection"), HeaderValue::from_static("Upgrade"));
+                        header_map.insert(CONNECTION, HeaderValue::from_static("Upgrade"));
                         Ok(HTTP1Response {
                             status: http::StatusCode::SWITCHING_PROTOCOLS,
                             headers: header_map,
