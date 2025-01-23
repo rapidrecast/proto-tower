@@ -1,5 +1,4 @@
-use crate::parser::parse_request;
-use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
+use crate::{Http2Request, Http2Response, ProtoHttp2Config};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -10,31 +9,31 @@ use tower::Service;
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
-pub struct ProtoHttp1Layer<SERVICE>
+pub struct ProtoH2CLayer<SERVICE>
 where
-    SERVICE: Service<HTTP1Request, Response=HTTP1Response> + Send + Clone,
+    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
 {
-    config: ProtoHttp1Config,
+    config: ProtoHttp2Config,
     /// The inner service to process requests
     inner: SERVICE,
 }
 
-impl<SERVICE> ProtoHttp1Layer<SERVICE>
+impl<SERVICE> ProtoH2CLayer<SERVICE>
 where
-    SERVICE: Service<HTTP1Request, Response=HTTP1Response> + Send + Clone,
+    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
 {
     /// Create a new instance of the service
-    pub fn new(config: ProtoHttp1Config, inner: SERVICE) -> Self {
-        ProtoHttp1Layer { config, inner }
+    pub fn new(config: ProtoHttp2Config, inner: SERVICE) -> Self {
+        ProtoH2CLayer { config, inner }
     }
 }
 
-impl<READER, WRITER, SERVICE, ERROR, SVC_FUT> Service<(READER, WRITER)> for ProtoHttp1Layer<SERVICE>
+impl<READER, WRITER, SERVICE, ERROR, SVC_FUT> Service<(READER, WRITER)> for ProtoH2CLayer<SERVICE>
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
-    SERVICE: Service<HTTP1Request, Response=HTTP1Response, Error=ERROR, Future=SVC_FUT> + Send + Clone + 'static,
-    SVC_FUT: Future<Output=Result<HTTP1Response, ERROR>> + Send,
+    SERVICE: Service<Http2Request, Response=Http2Response, Error=ERROR, Future=SVC_FUT> + Send + Clone + 'static,
+    SVC_FUT: Future<Output=Result<Http2Response, ERROR>> + Send,
 {
     /// The response is handled by the protocol
     type Response = ();
@@ -77,7 +76,7 @@ where
                 }
             }
             // Validate request
-            match parse_request(&buffer) {
+            match crate::parser::parse_request(&buffer) {
                 Ok(partial_resul) => {
                     match partial_resul {
                         Ok(req) => {

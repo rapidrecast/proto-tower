@@ -1,4 +1,4 @@
-use crate::layer::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
+use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
 use crate::make_layer::ProtoHttp1MakeLayer;
 use std::future::Future;
 use std::pin::Pin;

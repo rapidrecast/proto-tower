@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use http::Uri;
-use crate::layer::HTTP1Request;
+use crate::HTTP1Request;
 use parser_helper::ParseHelper;
 
 #[derive(Debug)]

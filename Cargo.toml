@@ -1,5 +1,5 @@
 [workspace]
-members = ["proto-http-1"]
+members = ["proto-http-2", "proto-http-1"]
 
 [package]
 name = "proto-tower"

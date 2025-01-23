@@ -1,25 +1,25 @@
+use crate::layer::{Http2Request, Http2Response, ProtoH2CLayer, ProtoHttp2Config};
+use crate::{Http2Request, Http2Response, ProtoHttp2Config};
 use std::marker::PhantomData;
 use tower::{Layer, Service};
-use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
-use crate::layer::ProtoHttp1Layer;
 
 /// This is the initializer for the layer.
 /// Invocations to the service will take the sender and receiver of the connection and process
 /// the full lifetime.
 pub struct ProtoHttp1MakeLayer<SERVICE>
 where
-    SERVICE: Service<HTTP1Request, Response = HTTP1Response> + Send + Clone,
+    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
 {
     phantom_data: PhantomData<SERVICE>,
-    config: ProtoHttp1Config,
+    config: ProtoHttp2Config,
 }
 
 impl<SERVICE> ProtoHttp1MakeLayer<SERVICE>
 where
-    SERVICE: Service<HTTP1Request, Response = HTTP1Response> + Send + Clone,
+    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
 {
     /// Create a new instance of the layer
-    pub fn new(config: ProtoHttp1Config) -> Self {
+    pub fn new(config: ProtoHttp2Config) -> Self {
         ProtoHttp1MakeLayer {
             phantom_data: PhantomData,
             config,
@@ -29,11 +29,11 @@ where
 
 impl<SERVICE> Layer<SERVICE> for ProtoHttp1MakeLayer<SERVICE>
 where
-    SERVICE: Service<HTTP1Request, Response = HTTP1Response> + Send + Clone,
+    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
 {
-    type Service = ProtoHttp1Layer<SERVICE>;
+    type Service = ProtoH2CLayer<SERVICE>;
 
     fn layer(&self, inner: SERVICE) -> Self::Service {
-        ProtoHttp1Layer::new(self.config.clone(), inner)
+        ProtoH2CLayer::new(self.config.clone(), inner)
     }
 }

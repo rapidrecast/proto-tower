@@ -1,21 +1,19 @@
 use http::Uri;
 use tokio::io::AsyncWriteExt;
 
-mod layer;
-mod make_layer;
-#[cfg(test)]
-mod test;
+pub mod make_layer;
+pub mod layer;
 mod parser;
 
 #[derive(Clone, Debug)]
-pub struct ProtoHttp1Config {
+pub struct ProtoHttp2Config {
     pub max_header_size: usize,
     pub max_body_size: usize,
     pub timeout: std::time::Duration,
 }
 
 #[derive(Debug)]
-pub struct HTTP1Request {
+pub struct Http2Request {
     pub path: Uri,
     pub method: http::Method,
     pub headers: http::HeaderMap,
@@ -23,13 +21,13 @@ pub struct HTTP1Request {
 }
 
 #[derive(Debug)]
-pub struct HTTP1Response {
+pub struct Http2Response {
     pub status: http::StatusCode,
     pub headers: http::HeaderMap,
     pub body: Vec<u8>,
 }
 
-impl HTTP1Response {
+impl Http2Response {
     pub async fn write_onto<WRITER: AsyncWriteExt + Send + Unpin + 'static>(&self, mut writer: WRITER) {
         // RESPONSE
         const VERSION: &[u8] = "HTTP/1.1".as_bytes();
