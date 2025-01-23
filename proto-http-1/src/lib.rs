@@ -1,5 +1,5 @@
 use http::Uri;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 mod layer;
 mod make_layer;
@@ -14,6 +14,17 @@ pub struct ProtoHttp1Config {
     pub timeout: std::time::Duration,
 }
 
+/// This is what the downstream service will receive
+pub enum HTTP1Event<READER, WRITER>
+where
+    READER: AsyncReadExt + Send + Unpin + 'static,
+    WRITER: AsyncWriteExt + Send + Unpin + 'static,
+{
+    Request(HTTP1Request),
+    ProtocolUpgrade((READER, WRITER)),
+}
+
+/// An HTTP/1.1 request
 #[derive(Debug)]
 pub struct HTTP1Request {
     pub path: Uri,
@@ -22,6 +33,7 @@ pub struct HTTP1Request {
     pub body: Vec<u8>,
 }
 
+/// An HTTP/1.1 response
 #[derive(Debug)]
 pub struct HTTP1Response {
     pub status: http::StatusCode,

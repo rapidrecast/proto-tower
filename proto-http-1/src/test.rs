@@ -1,5 +1,5 @@
 use crate::make_layer::ProtoHttp1MakeLayer;
-use crate::{HTTP1Request, HTTP1Response, ProtoHttp1Config};
+use crate::{HTTP1Event, HTTP1Response, ProtoHttp1Config};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -15,7 +15,7 @@ async fn test_handler() {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    }, None)).service(TestService);
+    })).service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -39,7 +39,7 @@ async fn test_path() {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    }, None)).service(TestService);
+    })).service(TestService);
     client_writer.write_all(b"GET /path/abc HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -63,7 +63,7 @@ async fn test_headers() {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    }, None)).service(TestService);
+    })).service(TestService);
     client_writer.write_all(b"GET /header HTTP/1.1\r\nHost: localhost\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -87,7 +87,7 @@ async fn test_body() {
         max_header_size: 0,
         max_body_size: 0,
         timeout: Duration::from_millis(200),
-    }, None)).service(TestService);
+    })).service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\nHello, World!").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let mut buffer = Vec::with_capacity(1024);
@@ -116,7 +116,11 @@ async fn test_protocol_upgrade() {
 #[derive(Clone)]
 pub struct TestService;
 
-impl Service<HTTP1Request> for TestService {
+impl<READER, WRITER> Service<HTTP1Event<READER, WRITER>> for TestService
+where
+    READER: AsyncReadExt + Send + Unpin + 'static,
+    WRITER: AsyncWriteExt + Send + Unpin + 'static,
+{
     type Response = HTTP1Response;
     type Error = ();
     type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send>>;
@@ -125,15 +129,22 @@ impl Service<HTTP1Request> for TestService {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: HTTP1Request) -> Self::Future {
+    fn call(&mut self, req: HTTP1Event<READER, WRITER>) -> Self::Future {
         Box::pin(async move {
-            if req.path.path() == "/" {
-                Ok(HTTP1Response { status: http::StatusCode::OK, headers: Default::default(), body: vec![] })
-            } else if req.path.path().starts_with("/path/") {
-                Ok(HTTP1Response { status: http::StatusCode::OK, headers: Default::default(), body: format!("Path was {}", req.path.path()).into_bytes() })
-            } else {
-                eprintln!("{:?}", req);
-                todo!()
+            match req {
+                HTTP1Event::Request(req) => {
+                    if req.path.path() == "/" {
+                        Ok(HTTP1Response { status: http::StatusCode::OK, headers: Default::default(), body: vec![] })
+                    } else if req.path.path().starts_with("/path/") {
+                        Ok(HTTP1Response { status: http::StatusCode::OK, headers: Default::default(), body: format!("Path was {}", req.path.path()).into_bytes() })
+                    } else {
+                        eprintln!("{:?}", req);
+                        todo!()
+                    }
+                }
+                HTTP1Event::ProtocolUpgrade(_) => {
+                    todo!()
+                }
             }
         })
     }
