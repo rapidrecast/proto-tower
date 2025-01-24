@@ -1,82 +1,71 @@
+use crate::parser::read_next_frame;
 use crate::{Http2Request, Http2Response, ProtoHttp2Config};
+use proto_tower::ZeroReadBehaviour;
+use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::Service;
+
+#[derive(Debug)]
+pub enum ProtoHttp2Error<Error: Debug> {
+    InvalidPreface,
+    ServiceError(Error),
+}
 
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
-pub struct ProtoH2CLayer<SERVICE>
+pub struct ProtoH2CLayer<Svc>
 where
-    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
+    Svc: Service<Http2Request, Response = Http2Response> + Send + Clone,
 {
     config: ProtoHttp2Config,
     /// The inner service to process requests
-    inner: SERVICE,
+    inner: Svc,
 }
 
-impl<SERVICE> ProtoH2CLayer<SERVICE>
+impl<Svc> ProtoH2CLayer<Svc>
 where
-    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
+    Svc: Service<Http2Request, Response = Http2Response> + Send + Clone,
 {
     /// Create a new instance of the service
-    pub fn new(config: ProtoHttp2Config, inner: SERVICE) -> Self {
+    pub fn new(config: ProtoHttp2Config, inner: Svc) -> Self {
         ProtoH2CLayer { config, inner }
     }
 }
 
-impl<READER, WRITER, SERVICE, ERROR, SVC_FUT> Service<(READER, WRITER)> for ProtoH2CLayer<SERVICE>
+impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoH2CLayer<Svc>
 where
-    READER: AsyncReadExt + Send + Unpin + 'static,
-    WRITER: AsyncWriteExt + Send + Unpin + 'static,
-    SERVICE: Service<Http2Request, Response=Http2Response, Error=ERROR, Future=SVC_FUT> + Send + Clone + 'static,
-    SVC_FUT: Future<Output=Result<Http2Response, ERROR>> + Send,
+    Reader: AsyncReadExt + Send + Unpin + 'static,
+    Writer: AsyncWriteExt + Send + Unpin + 'static,
+    Svc: Service<Http2Request, Response = Http2Response, Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
+    SvcFut: Future<Output = Result<Http2Response, SvcError>> + Send,
 {
     /// The response is handled by the protocol
     type Response = ();
     /// Errors would be failures in parsing the protocol - this should be handled by the protocol
-    type Error = ERROR;
+    type Error = ProtoHttp2Error<SvcError>;
     /// The future is the protocol itself
-    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
     /// Indefinitely process the protocol
-    fn call(&mut self, (mut reader, mut writer): (READER, WRITER)) -> Self::Future {
+    fn call(&mut self, (mut reader, mut writer): (Reader, Writer)) -> Self::Future {
         let mut service = self.inner.clone();
         let config = self.config.clone();
         Box::pin(async move {
-            let mut last_time = std::time::Instant::now();
-            let mut buffer = Vec::with_capacity(1024);
-            let mut temp_buf = [0u8; 1024];
-            // Read all input
-            while last_time + config.timeout > std::time::Instant::now() {
-                tokio::select! {
-                    _ = tokio::time::sleep(config.timeout) => {
-                        // no-op, timeout reached and loop won't rerun
-                    }
-                    n = reader.read(&mut temp_buf) => {
-                        match n {
-                            Ok(n) => {
-                                if n != 0 {
-                                    last_time = std::time::Instant::now();
-                                    buffer.extend_from_slice(&temp_buf[..n]);
-                                }
-                            }
-                            Err(_) => {
-                                last_time = std::time::Instant::now()-config.timeout-Duration::from_secs(1);
-                            }
-                        }
-                    }
-                }
+            let async_read = proto_tower::AsyncReadToBuf::new(ZeroReadBehaviour::TickAndYield);
+            let mut preface = async_read.read_with_timeout(&mut reader, config.timeout, Some(28)).await;
+            if preface != b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" {
+                return Err(ProtoHttp2Error::InvalidPreface);
             }
             // Validate request
-            match crate::parser::parse_request(&buffer) {
+            match read_next_frame(&mut reader).await {
                 Ok(partial_resul) => {
                     match partial_resul {
                         Ok(req) => {
@@ -98,4 +87,3 @@ where
         })
     }
 }
-

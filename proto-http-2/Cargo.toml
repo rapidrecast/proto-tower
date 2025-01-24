@@ -7,4 +7,5 @@ edition = "2021"
 tower = "0.5.2"
 http = "1.2.0"
 tokio = { version = "1.43.0", features = ["io-util", "time"] }
-parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main"}
+parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main" }
+proto-tower = { path = ".." }

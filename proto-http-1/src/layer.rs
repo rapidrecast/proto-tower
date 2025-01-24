@@ -77,7 +77,7 @@ where
         let config = self.config.clone();
         Box::pin(async move {
             let async_reader = AsyncReadToBuf::<1024>::new(ZeroReadBehaviour::TickAndYield);
-            let buffer = async_reader.read_with_timeout(&mut reader, config.timeout).await;
+            let buffer = async_reader.read_with_timeout(&mut reader, config.timeout, None).await;
             // Validate request
             match parse_request(&buffer) {
                 Ok(partial_result) => {

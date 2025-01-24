@@ -1,6 +1,7 @@
 //! This should not be included directly by users of this library
 //! It includes shared helper code
 
+use std::cmp::min;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::Duration;
 use tokio::io::AsyncReadExt;
@@ -28,14 +29,22 @@ impl<const S: usize> AsyncReadToBuf<S> {
         AsyncReadToBuf::<S> { zero_read_behaviour }
     }
 
-    pub async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut READ, timeout: Duration) -> Vec<u8> {
-        let mut data = Vec::new();
+    pub async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut READ, timeout: Duration, desired_size: Option<usize>) -> Vec<u8> {
+        // TODO(https://github.com/rapidrecast/proto-tower/issues/1): Use async read buffer
+        let mut data = match desired_size {
+            None => Vec::new(),
+            Some(sz) => Vec::with_capacity(sz),
+        };
         let mut buffer = [0u8; S];
         let finished = AtomicBool::new(false);
         let tries = AtomicU32::new(0);
         const MAX_TRIES: u32 = 10;
         let calculated_timeout = timeout / MAX_TRIES;
         while !finished.load(Ordering::SeqCst) && tries.load(Ordering::SeqCst) < MAX_TRIES {
+            let buf_size = match desired_size {
+                None => S,
+                Some(sz) => min(S, sz - data.len()),
+            };
             tokio::select! {
                 _ = tokio::time::sleep(calculated_timeout) => {
                     let new_tries = tries.fetch_add(1, Ordering::SeqCst) + 1;
@@ -43,7 +52,7 @@ impl<const S: usize> AsyncReadToBuf<S> {
                         finished.store(true, Ordering::SeqCst);
                     }
                 }
-                n = reader.read(&mut buffer) => {
+                n = reader.read(&mut buffer[..buf_size]) => {
                     match n {
                         Ok(n) => {
                             if n != 0 {
@@ -71,5 +80,30 @@ impl<const S: usize> AsyncReadToBuf<S> {
             }
         }
         data
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{AsyncReadToBuf, ZeroReadBehaviour};
+    use std::io::Cursor;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn test_limited_read() {
+        let data = b"hello world";
+        let mut cursor = Cursor::new(data);
+        let async_read = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+        let result = async_read.read_with_timeout(&mut cursor, Duration::from_secs(1), Some(5)).await;
+        assert_eq!(result, b"hello");
+    }
+
+    #[tokio::test]
+    async fn test_large_read() {
+        let data = [0xff; 4096];
+        let mut cursor = Cursor::new(data);
+        let async_read = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+        let result = async_read.read_with_timeout(&mut cursor, Duration::from_secs(1), Some(2050)).await;
+        assert_eq!(result, &[0xff; 2050]);
     }
 }

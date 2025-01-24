@@ -25,7 +25,7 @@ async fn test_handler() {
     client_writer.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200), None).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -50,7 +50,7 @@ async fn test_path() {
     client_writer.write_all(b"GET /path/abc HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200), None).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -75,7 +75,7 @@ async fn test_headers() {
     client_writer.write_all(b"GET /header HTTP/1.1\r\nHost: localhost\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200), None).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -103,7 +103,7 @@ async fn test_body() {
     client_writer.write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\nHello, World!").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200), None).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -136,7 +136,7 @@ async fn test_protocol_upgrade() {
         .unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
     let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200), None).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -148,7 +148,7 @@ async fn test_protocol_upgrade() {
     );
     client_writer.write_all(b"Hello, World!").await.unwrap();
     let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200), None).await;
     assert_eq!(String::from_utf8(buffer).unwrap(), "Hello, World!");
     drop(client_writer);
     drop(client_reader);

@@ -10,3 +10,9 @@ The TLS layer can be injected separately.
 This crate handles the HTTP/2 protocol with or without TLS.
 
 https://www.rfc-editor.org/rfc/rfc7540
+
+# Notes
+
+If you are upgrading to http 2 from http 1, you should NOT do that if the upgrade protocol is h2c.
+
+From the [RFC](https://tools.ietf.org/html/rfc7540#section-3.2):
