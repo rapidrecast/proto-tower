@@ -1,4 +1,4 @@
-use crate::parser::Http2Frame;
+use crate::parser::Http2InnerFrame;
 use parser_helper::ParseHelper;
 
 #[derive(Debug)]
@@ -43,13 +43,13 @@ impl Http2FrameDataFlags {
     }
 }
 
-pub async fn read_data_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2Frame, &'static str> {
+pub fn read_data_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {
     let (pad_length, msg_payload) = msg_payload.take_exact_err(1, "Expected 1 byte padding length")?;
     let pad_length = pad_length[0] as usize;
     let message_length = msg_payload.len() - pad_length;
     let (payload, msg_payload) = msg_payload.take_exact_err(message_length, "Expected payload")?;
     let padding = msg_payload;
-    Ok(Http2Frame::Data(Http2FrameData {
+    Ok(Http2InnerFrame::Data(Http2FrameData {
         flags: Http2FrameDataFlags::from_u8(flags),
         payload: payload.to_vec(),
         padding: padding.to_vec(),

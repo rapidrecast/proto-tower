@@ -1,3 +1,4 @@
+mod error_codes;
 mod frame_continuation;
 mod frame_data;
 mod frame_goaway;
@@ -24,10 +25,16 @@ use crate::parser::frame_window_update::Http2FrameWindowUpdate;
 use parser_helper::ParseHelper;
 use proto_tower::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::time::Duration;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Debug)]
-pub enum Http2Frame {
+pub struct Http2Frame {
+    pub stream_id: u32,
+    pub inner_frame: Http2InnerFrame,
+}
+
+#[derive(Debug)]
+pub enum Http2InnerFrame {
     Data(Http2FrameData),
     Headers(Http2FrameHeaders),
     Priority(Http2FramePriority),
@@ -42,7 +49,7 @@ pub enum Http2Frame {
 }
 
 pub trait Http2TypeToFrame {
-    fn to_frame(&self, flags: u8, payload: &[u8]) -> Result<Http2Frame, &'static str>;
+    fn to_frame(&self, flags: u8, payload: &[u8]) -> Result<Http2InnerFrame, &'static str>;
 }
 
 pub enum Http2FrameType {
@@ -60,7 +67,7 @@ pub enum Http2FrameType {
 }
 
 impl Http2TypeToFrame for Http2FrameType {
-    fn to_frame(&self, flags: u8, payload: &[u8]) -> Result<Http2Frame, &'static str> {
+    fn to_frame(&self, flags: u8, payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {
         match self {
             Http2FrameType::Data => frame_data::read_data_frame(flags, payload),
             Http2FrameType::Headers => frame_header::read_header_frame(flags, payload),
@@ -135,5 +142,12 @@ pub(crate) async fn read_next_frame<Reader: AsyncReadExt + Send + Unpin + 'stati
         return Err("Frame too large");
     }
     let payload = async_reader.read_with_timeout(reader, timeout, Some(length as usize)).await;
-    Err("Not implemented")
+    let inner_frame = frame_type.to_frame(flags, &payload)?;
+    Ok(Http2Frame { stream_id, inner_frame })
+}
+
+impl Http2Frame {
+    pub async fn write_onto<Writer: AsyncWriteExt + Send + Unpin + 'static>(&self, writer: &mut Writer) -> Result<(), ()> {
+        Err(())
+    }
 }

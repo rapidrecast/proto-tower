@@ -1,4 +1,4 @@
-use crate::parser::Http2Frame;
+use crate::parser::Http2InnerFrame;
 use parser_helper::ParseHelper;
 
 #[derive(Debug)]
@@ -64,7 +64,7 @@ impl Http2FrameSettingsFlags {
     }
 }
 
-pub fn read_settings_frame(flags: u8, mut msg_payload: &[u8]) -> Result<Http2Frame, &'static str> {
+pub fn read_settings_frame(flags: u8, mut msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {
     let flags = Http2FrameSettingsFlags::from_u8(flags);
     if flags.get_ack() && msg_payload.len() > 0 {
         return Err("Settings frame with ACK flag must have empty payload");
@@ -83,5 +83,5 @@ pub fn read_settings_frame(flags: u8, mut msg_payload: &[u8]) -> Result<Http2Fra
         settings.push(Http2SettingsEntry { identifier, value });
         msg_payload = new_payload;
     }
-    Ok(Http2Frame::Settings(Http2FrameSettings { flags, settings }))
+    Ok(Http2InnerFrame::Settings(Http2FrameSettings { flags, settings }))
 }

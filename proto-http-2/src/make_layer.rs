@@ -1,6 +1,8 @@
-use crate::layer::{Http2Request, Http2Response, ProtoH2CLayer, ProtoHttp2Config};
-use crate::{Http2Request, Http2Response, ProtoHttp2Config};
+use crate::layer::ProtoH2CLayer;
+use crate::parser::Http2Frame;
+use crate::ProtoHttp2Config;
 use std::marker::PhantomData;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tower::{Layer, Service};
 
 /// This is the initializer for the layer.
@@ -8,7 +10,7 @@ use tower::{Layer, Service};
 /// the full lifetime.
 pub struct ProtoHttp1MakeLayer<SERVICE>
 where
-    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
+    SERVICE: Service<(Receiver<Http2Frame>, Sender<Http2Frame>), Response = ()> + Send + Clone,
 {
     phantom_data: PhantomData<SERVICE>,
     config: ProtoHttp2Config,
@@ -16,7 +18,7 @@ where
 
 impl<SERVICE> ProtoHttp1MakeLayer<SERVICE>
 where
-    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
+    SERVICE: Service<(Receiver<Http2Frame>, Sender<Http2Frame>), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the layer
     pub fn new(config: ProtoHttp2Config) -> Self {
@@ -29,7 +31,7 @@ where
 
 impl<SERVICE> Layer<SERVICE> for ProtoHttp1MakeLayer<SERVICE>
 where
-    SERVICE: Service<Http2Request, Response=Http2Response> + Send + Clone,
+    SERVICE: Service<(Receiver<Http2Frame>, Sender<Http2Frame>), Response = ()> + Send + Clone,
 {
     type Service = ProtoH2CLayer<SERVICE>;
 

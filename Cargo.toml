@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.43.0", features = ["io-util", "time", "macros"] }
+tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt"] }
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }

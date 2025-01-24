@@ -1,4 +1,4 @@
-use crate::parser::Http2Frame;
+use crate::parser::Http2InnerFrame;
 use parser_helper::ParseHelper;
 
 #[derive(Debug)]
@@ -48,7 +48,7 @@ impl Http2FramePushPromiseFlags {
     }
 }
 
-pub fn read_push_promise_frame(_flags: u8, msg_payload: &[u8]) -> Result<Http2Frame, &'static str> {
+pub fn read_push_promise_frame(_flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {
     let (pad_length, msg_payload) = msg_payload.take_exact_err(1, "Expected 1 byte padding length")?;
     let pad_length = pad_length[0] as usize;
     let (reserved_and_promised_stream_id, msg_payload) = msg_payload.take_exact_err(4, "Expected 4 bytes reserved and promised stream id")?;
@@ -57,7 +57,7 @@ pub fn read_push_promise_frame(_flags: u8, msg_payload: &[u8]) -> Result<Http2Fr
     let (header_block_fragment, msg_payload) = msg_payload.take_exact_err(message_length, "Expected header block fragment")?;
     let header_block_fragment = header_block_fragment.to_vec();
     let padding = msg_payload.to_vec();
-    Ok(Http2Frame::PushPromise(Http2FramePushPromise {
+    Ok(Http2InnerFrame::PushPromise(Http2FramePushPromise {
         flags: Http2FramePushPromiseFlags { flags: 0 },
         reserved_and_promised_stream_id,
         header_block_fragment,

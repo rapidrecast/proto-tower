@@ -1,4 +1,4 @@
-use crate::parser::Http2Frame;
+use crate::parser::Http2InnerFrame;
 
 #[derive(Debug)]
 pub struct Http2FramePing {
@@ -6,7 +6,7 @@ pub struct Http2FramePing {
     pub opaque_data: [u8; 8],
 }
 
-pub fn read_ping_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2Frame, &'static str> {
+pub fn read_ping_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {
     if msg_payload.len() != 8 {
         return Err("Expected 8 bytes for ping frame");
     }
@@ -14,5 +14,5 @@ pub fn read_ping_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2Frame, &'st
     for i in 0..8 {
         opaque_data[i] = msg_payload[i];
     }
-    Ok(Http2Frame::Ping(Http2FramePing { flags, opaque_data }))
+    Ok(Http2InnerFrame::Ping(Http2FramePing { flags, opaque_data }))
 }
