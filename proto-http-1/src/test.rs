@@ -2,9 +2,9 @@ use crate::make_layer::ProtoHttp1MakeLayer;
 use crate::{HTTP1Event, HTTTP1Response, HTTTP1ResponseEvent, ProtoHttp1Config};
 use http::header::{CONNECTION, UPGRADE};
 use http::{HeaderMap, HeaderValue};
+use proto_tower::ZeroReadBehaviour;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::task::{Context, Poll};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -19,12 +19,13 @@ async fn test_handler() {
         .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
-            timeout: Duration::from_millis(200),
+            timeout: Duration::from_millis(100),
         }))
         .service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
-    let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -43,12 +44,13 @@ async fn test_path() {
         .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
-            timeout: Duration::from_millis(200),
+            timeout: Duration::from_millis(100),
         }))
         .service(TestService);
     client_writer.write_all(b"GET /path/abc HTTP/1.1\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
-    let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -67,12 +69,13 @@ async fn test_headers() {
         .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
-            timeout: Duration::from_millis(200),
+            timeout: Duration::from_millis(100),
         }))
         .service(TestService);
     client_writer.write_all(b"GET /header HTTP/1.1\r\nHost: localhost\r\n\r\n").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
-    let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -94,12 +97,13 @@ async fn test_body() {
         .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
-            timeout: Duration::from_millis(200),
+            timeout: Duration::from_millis(100),
         }))
         .service(TestService);
     client_writer.write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\nHello, World!").await.unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
-    let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -123,7 +127,7 @@ async fn test_protocol_upgrade() {
         .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
-            timeout: Duration::from_millis(200),
+            timeout: Duration::from_millis(100),
         }))
         .service(TestService);
     client_writer
@@ -131,7 +135,8 @@ async fn test_protocol_upgrade() {
         .await
         .unwrap();
     let task = tokio::spawn(service.call((server_reader, server_writer)));
-    let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
     let (task, result) = result_if_task_finished(task).await;
     if let Some(res) = result {
         res.unwrap();
@@ -142,46 +147,12 @@ async fn test_protocol_upgrade() {
         "HTTP/1.1 101 Switching Protocols\r\nupgrade: plaintext-protocol\r\nconnection: Upgrade\r\n\r\n"
     );
     client_writer.write_all(b"Hello, World!").await.unwrap();
-    let buffer = read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
+    let reader = proto_tower::AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let buffer = reader.read_with_timeout(&mut client_reader, Duration::from_millis(200)).await;
     assert_eq!(String::from_utf8(buffer).unwrap(), "Hello, World!");
     drop(client_writer);
     drop(client_reader);
     task.await.unwrap().unwrap();
-}
-
-async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(reader: &mut READ, timeout: Duration) -> Vec<u8> {
-    let mut data = Vec::new();
-    let mut buffer = [0u8; 1024];
-    let finished = AtomicBool::new(false);
-    let tries = AtomicU32::new(0);
-    const MAX_TRIES: u32 = 10;
-    let remaining_timeout = timeout / MAX_TRIES;
-    while !finished.load(Ordering::SeqCst) && tries.load(Ordering::SeqCst) < MAX_TRIES {
-        tokio::select! {
-            _ = tokio::time::sleep(remaining_timeout) => {
-                let new_tries = tries.fetch_add(1, Ordering::SeqCst) + 1;
-                if new_tries >= MAX_TRIES {
-                    finished.store(true, Ordering::SeqCst);
-                }
-            }
-            n = reader.read(&mut buffer) => {
-                match n {
-                    Ok(n) => {
-                        if n != 0 {
-                            data.extend_from_slice(&buffer[..n]);
-                            tries.store(0, Ordering::SeqCst);
-                        } else {
-                            tries.fetch_add(1, Ordering::SeqCst);
-                        }
-                    }
-                    Err(_) => {
-                        finished.store(true, Ordering::SeqCst);
-                    }
-                }
-            }
-        }
-    }
-    data
 }
 
 async fn result_if_task_finished<T, E>(task: JoinHandle<Result<T, E>>) -> (Option<JoinHandle<Result<T, E>>>, Option<Result<T, E>>) {

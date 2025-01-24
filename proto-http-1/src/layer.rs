@@ -1,11 +1,11 @@
 use crate::parser::parse_request;
 use crate::{HTTP1Event, HTTTP1ResponseEvent, ProtoHttp1Config};
 use http::header::{CONNECTION, UPGRADE};
+use proto_tower::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::Service;
 
@@ -76,29 +76,8 @@ where
         let mut service = self.inner.clone();
         let config = self.config.clone();
         Box::pin(async move {
-            let mut last_time = std::time::Instant::now();
-            let mut buffer = Vec::with_capacity(1024);
-            let mut temp_buf = [0u8; 1024];
-            // Read all input
-            while last_time + config.timeout > std::time::Instant::now() {
-                tokio::select! {
-                    _ = tokio::time::sleep(config.timeout) => {
-                    }
-                    n = reader.read(&mut temp_buf) => {
-                        match n {
-                            Ok(n) => {
-                                if n != 0 {
-                                    last_time = std::time::Instant::now();
-                                    buffer.extend_from_slice(&temp_buf[..n]);
-                                }
-                            }
-                            Err(_) => {
-                                last_time = std::time::Instant::now()-config.timeout-Duration::from_secs(1);
-                            }
-                        }
-                    }
-                }
-            }
+            let async_reader = AsyncReadToBuf::<1024>::new(ZeroReadBehaviour::TickAndYield);
+            let buffer = async_reader.read_with_timeout(&mut reader, config.timeout).await;
             // Validate request
             match parse_request(&buffer) {
                 Ok(partial_result) => {
