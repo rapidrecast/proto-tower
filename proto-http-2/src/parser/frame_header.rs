@@ -1,5 +1,7 @@
-use crate::parser::Http2InnerFrame;
+use crate::parser::{Http2InnerFrame, WriteOnto};
+use async_trait::async_trait;
 use parser_helper::ParseHelper;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Debug)]
 pub struct Http2FrameHeaders {
@@ -8,6 +10,12 @@ pub struct Http2FrameHeaders {
     pub weight: u8,
     pub header_block_fragment: Vec<u8>,
     pub padding: Vec<u8>,
+}
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2FrameHeaders {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

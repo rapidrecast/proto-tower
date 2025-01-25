@@ -1,10 +1,18 @@
-use crate::parser::Http2InnerFrame;
+use crate::parser::{Http2InnerFrame, WriteOnto};
+use async_trait::async_trait;
 use parser_helper::ParseHelper;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Debug)]
 pub struct Http2FrameSettings {
     pub flags: Http2FrameSettingsFlags,
     pub settings: Vec<Http2SettingsEntry>,
+}
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2FrameSettings {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

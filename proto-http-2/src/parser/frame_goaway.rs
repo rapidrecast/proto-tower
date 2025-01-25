@@ -1,12 +1,20 @@
 use crate::parser::error_codes::{FrameError, FrameErrorCode};
-use crate::parser::Http2InnerFrame;
+use crate::parser::{Http2InnerFrame, WriteOnto};
+use async_trait::async_trait;
 use parser_helper::ParseHelper;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Debug)]
 pub struct Http2FrameGoaway {
     pub reserved_and_last_stream_id: u32,
     pub error_code: FrameError,
     pub additional_debug_data: Vec<u8>,
+}
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2FrameGoaway {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        todo!()
+    }
 }
 
 pub fn read_goaway_frame(_flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {

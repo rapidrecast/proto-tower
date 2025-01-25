@@ -1,9 +1,17 @@
-use crate::parser::Http2InnerFrame;
+use crate::parser::{Http2InnerFrame, WriteOnto};
+use async_trait::async_trait;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Debug)]
 pub struct Http2FramePing {
     pub flags: u8,
     pub opaque_data: [u8; 8],
+}
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2FramePing {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        todo!()
+    }
 }
 
 pub fn read_ping_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {

@@ -1,10 +1,18 @@
-use crate::parser::Http2InnerFrame;
+use crate::parser::{Http2InnerFrame, WriteOnto};
+use async_trait::async_trait;
 use parser_helper::ParseHelper;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Debug)]
 pub struct Http2FramePriority {
     pub exclusive_and_stream_dependency: u32,
     pub weight: u8,
+}
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2FramePriority {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        todo!()
+    }
 }
 
 pub fn read_priority_frame(flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {

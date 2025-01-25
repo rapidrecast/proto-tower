@@ -22,6 +22,7 @@ use crate::parser::frame_reset_stream::Http2FrameResetStream;
 use crate::parser::frame_settings::Http2FrameSettings;
 use crate::parser::frame_unknown::Http2FrameUnknown;
 use crate::parser::frame_window_update::Http2FrameWindowUpdate;
+use async_trait::async_trait;
 use parser_helper::ParseHelper;
 use proto_tower::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::time::Duration;
@@ -48,10 +49,48 @@ pub enum Http2InnerFrame {
     Unknown(Http2FrameUnknown),
 }
 
+impl Http2InnerFrame {
+    pub fn len(&self) -> usize {
+        match self {
+            Http2InnerFrame::Data(frame) => frame.payload.len() + frame.padding.len() + 1,
+            Http2InnerFrame::Headers(frame) => frame.header_block_fragment.len() + frame.padding.len() + 6,
+            Http2InnerFrame::Priority(_) => 5,
+            Http2InnerFrame::RstStream(_) => 4,
+            Http2InnerFrame::Settings(frame) => 6 * frame.settings.len(),
+            Http2InnerFrame::PushPromise(frame) => 5 + frame.header_block_fragment.len() + frame.padding.len(),
+            Http2InnerFrame::Ping(_) => 8,
+            Http2InnerFrame::GoAway(frame) => 8 + frame.additional_debug_data.len(),
+            Http2InnerFrame::WindowUpdate(_) => 4,
+            Http2InnerFrame::Continuation(frame) => frame.header_block_fragment.len(),
+            Http2InnerFrame::Unknown(frame) => frame.payload.len(),
+        }
+    }
+}
+
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2InnerFrame {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        match self {
+            Http2InnerFrame::Data(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::Headers(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::Priority(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::RstStream(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::Settings(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::PushPromise(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::Ping(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::GoAway(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::WindowUpdate(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::Continuation(frame) => frame.write_onto(writer).await,
+            Http2InnerFrame::Unknown(frame) => frame.write_onto(writer).await,
+        }
+    }
+}
+
 pub trait Http2TypeToFrame {
     fn to_frame(&self, flags: u8, payload: &[u8]) -> Result<Http2InnerFrame, &'static str>;
 }
 
+#[derive(Debug)]
 pub enum Http2FrameType {
     Data,
     Headers,
@@ -146,8 +185,34 @@ pub(crate) async fn read_next_frame<Reader: AsyncReadExt + Send + Unpin + 'stati
     Ok(Http2Frame { stream_id, inner_frame })
 }
 
-impl Http2Frame {
-    pub async fn write_onto<Writer: AsyncWriteExt + Send + Unpin + 'static>(&self, writer: &mut Writer) -> Result<(), ()> {
-        Err(())
+#[async_trait]
+pub trait WriteOnto<Writer>
+where
+    Writer: AsyncWriteExt + Send + Unpin,
+{
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()>;
+}
+
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2Frame {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        let length = self.inner_frame.len() as u32;
+        writer.write_all(&length.to_be_bytes()).await.map_err(|_| ())?;
+        let (flags, frame_type) = match &self.inner_frame {
+            Http2InnerFrame::Data(d) => (d.flags.as_u8(), Http2FrameType::Data),
+            Http2InnerFrame::Headers(d) => (d.flags.as_u8(), Http2FrameType::Headers),
+            Http2InnerFrame::Priority(_) => (0, Http2FrameType::Priority),
+            Http2InnerFrame::RstStream(_) => (0, Http2FrameType::RstStream),
+            Http2InnerFrame::Settings(d) => (d.flags.as_u8(), Http2FrameType::Settings),
+            Http2InnerFrame::PushPromise(d) => (d.flags.as_u8(), Http2FrameType::PushPromise),
+            Http2InnerFrame::Ping(d) => (d.flags, Http2FrameType::Ping),
+            Http2InnerFrame::GoAway(_) => (0, Http2FrameType::GoAway),
+            Http2InnerFrame::WindowUpdate(_) => (0, Http2FrameType::WindowUpdate),
+            Http2InnerFrame::Continuation(_) => (0, Http2FrameType::Continuation),
+            Http2InnerFrame::Unknown(d) => (0, Http2FrameType::Unknown(d.frame_type)),
+        };
+        writer.write_all(&frame_type.into_u8().to_be_bytes()).await.map_err(|_| ())?;
+        writer.write_all(&flags.to_be_bytes()).await.map_err(|_| ())?;
+        self.inner_frame.write_onto(writer).await
     }
 }

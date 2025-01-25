@@ -1,9 +1,17 @@
 use crate::parser::error_codes::{FrameError, FrameErrorCode};
-use crate::parser::Http2InnerFrame;
+use crate::parser::{Http2InnerFrame, WriteOnto};
+use async_trait::async_trait;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Debug)]
 pub struct Http2FrameResetStream {
     pub error_code: FrameError,
+}
+#[async_trait]
+impl<Writer: AsyncWriteExt + Send + Unpin + 'static> WriteOnto<Writer> for Http2FrameResetStream {
+    async fn write_onto(&self, writer: &mut Writer) -> Result<(), ()> {
+        todo!()
+    }
 }
 
 pub fn read_reset_stream_frame(_flags: u8, msg_payload: &[u8]) -> Result<Http2InnerFrame, &'static str> {

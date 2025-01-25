@@ -1,4 +1,4 @@
-use crate::parser::{read_next_frame, Http2Frame};
+use crate::parser::{read_next_frame, Http2Frame, WriteOnto};
 use crate::ProtoHttp2Config;
 use proto_tower::ZeroReadBehaviour;
 use std::fmt::Debug;
@@ -98,6 +98,12 @@ where
                             }
                         }
                     }
+                }
+                if internal_task.is_finished() {
+                    return match internal_task.await {
+                        Ok(Err(e)) => Err(ProtoHttp2Error::ServiceError(e)),
+                        Ok(Ok(_)) | Err(_) => Err(ProtoHttp2Error::InnerServiceClosed),
+                    };
                 }
             }
         })
