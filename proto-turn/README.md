@@ -5,3 +5,11 @@ In such cases, a relay server is needed to relay the data between the peers.
 TURN is a protocol that allows the peers to communicate through a relay server.
 
 https://www.rfc-editor.org/rfc/rfc8656.html
+
+
+## Adding dependency to project
+
+```toml
+[dependencies]
+proto-turn = { git = "https://github.com/rapidrecast/proto-tower.git", subdir = "proto-turn" }
+```

@@ -2,6 +2,13 @@
 
 An implementation of HTTP/1.1 using `tokio-io` and `tower`.
 
+## Adding dependency to project
+
+```toml
+[dependencies]
+proto-http-1 = { git = "https://github.com/rapidrecast/proto-tower.git", subdir = "proto-http-1" }
+```
+
 ## Feature Completion
 
 ### Server

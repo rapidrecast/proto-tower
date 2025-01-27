@@ -11,6 +11,14 @@ This crate handles the HTTP/2 protocol with or without TLS.
 
 https://www.rfc-editor.org/rfc/rfc7540
 
+## Adding dependency to project
+
+```toml
+[dependencies]
+proto-http-2 = { git = "https://github.com/rapidrecast/proto-tower.git", subdir = "proto-http-2" }
+```
+
+
 # Notes
 
 If you are upgrading to http 2 from http 1, you should NOT do that if the upgrade protocol is h2c.
