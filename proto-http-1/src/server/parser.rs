@@ -1,4 +1,4 @@
-use crate::HTTP1Request;
+use crate::data::HTTP1Request;
 use http::{HeaderMap, HeaderName, HeaderValue, Method, Uri};
 use parser_helper::ParseHelper;
 use std::str::FromStr;

@@ -1,5 +1,6 @@
-use crate::parser::parse_request;
-use crate::{HTTP1Event, HTTTP1ResponseEvent, ProtoHttp1Config};
+use crate::data::{HTTP1Event, HTTTP1ResponseEvent};
+use crate::server::parser::parse_request;
+use crate::server::ProtoHttp1Config;
 use http::header::{CONNECTION, UPGRADE};
 use proto_tower::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::future::Future;

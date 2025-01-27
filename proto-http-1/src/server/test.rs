@@ -1,5 +1,6 @@
-use crate::make_layer::ProtoHttp1MakeLayer;
-use crate::{HTTP1Event, HTTTP1Response, HTTTP1ResponseEvent, ProtoHttp1Config};
+use crate::data::{HTTP1Event, HTTTP1Response, HTTTP1ResponseEvent};
+use crate::server::make_layer::ProtoHttp1MakeLayer;
+use crate::server::ProtoHttp1Config;
 use http::header::{CONNECTION, UPGRADE};
 use http::{HeaderMap, HeaderValue};
 use proto_tower::ZeroReadBehaviour;

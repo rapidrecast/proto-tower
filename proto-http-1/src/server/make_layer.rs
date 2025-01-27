@@ -1,5 +1,6 @@
-use crate::layer::ProtoHttp1Layer;
-use crate::{HTTP1Event, HTTTP1ResponseEvent, ProtoHttp1Config};
+use crate::data::{HTTP1Event, HTTTP1ResponseEvent};
+use crate::server::layer::ProtoHttp1Layer;
+use crate::server::ProtoHttp1Config;
 use std::marker::PhantomData;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::{Layer, Service};
