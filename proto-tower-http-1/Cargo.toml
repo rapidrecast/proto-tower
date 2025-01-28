@@ -6,7 +6,7 @@ authors = [
     "RapidRecast <hugh@rapidrecast.io>",
 ]
 description = "Tower implementation of the HTTP/1.1 protocol"
-license = "GPL-3"
+license = "GPL-3.0-only"
 
 [features]
 # Data types of HTTP 1.1

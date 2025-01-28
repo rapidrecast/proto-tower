@@ -6,7 +6,7 @@ authors = [
     "RapidRecast <hugh@rapidrecast.io>",
 ]
 description = "Helper tools for Tower protocol implementations"
-license = "GPL-3"
+license = "GPL-3.0-only"
 
 
 [dependencies]

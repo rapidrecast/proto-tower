@@ -24,7 +24,7 @@ authors = [
     "RapidRecast <hugh@rapidrecast.io>",
 ]
 description = "Tower implementation of various"
-license = "GPL-3"
+license = "GPL-3.0-only"
 
 [features]
 all = [
