@@ -1,6 +1,6 @@
 [package]
 name = "proto-tower-http-1"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = [
     "RapidRecast <hugh@rapidrecast.io>",
@@ -21,8 +21,8 @@ server = ["data"]
 http = "1.2.0"
 tokio = { version = "1.43.0", features = ["io-util", "time"] }
 tower = { version = "0.5.2" }
-parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main" }
-proto-tower-util = { path = "../proto-tower-util" }
+parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", tag = "v0.1.0" }
+proto-tower-util = { version = "0.1.1" }
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
