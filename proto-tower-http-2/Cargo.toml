@@ -18,5 +18,5 @@ server = ["data"]
 tower = "0.5.2"
 tokio = { version = "1.43.0", features = ["io-util", "time", "sync"] }
 parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main" }
-proto-tower-util = { version = "0.1.1" }
+proto-tower-util = { version = "0.1.*" }
 async-trait = "0.1.85"
