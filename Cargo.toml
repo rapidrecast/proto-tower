@@ -18,7 +18,7 @@ members = [
 
 [package]
 name = "proto-tower"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = [
     "RapidRecast <hugh@rapidrecast.io>",
@@ -96,17 +96,17 @@ webrtc-client = ["webrtc-data", "proto-tower-webrtc/client"]
 webrtc-server = ["webrtc-data", "proto-tower-webrtc/server"]
 
 [dependencies]
-proto-tower-dtls = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-dtls", optional = true, features = ['data'] }
-proto-tower-grpc = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-grpc", optional = true, features = ['data'] }
-proto-tower-http-1 = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-1", optional = true, features = ['data'] }
-proto-tower-http-2 = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-2", optional = true, features = ['data'] }
-proto-tower-http-3 = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-3", optional = true, features = ['data'] }
-proto-tower-ice = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-ice", optional = true, features = ['data'] }
-proto-tower-kafka = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-kafka", optional = true, features = ['data'] }
-proto-tower-mqtt = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-mqtt", optional = true, features = ['data'] }
-proto-tower-quic = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-quic", optional = true, features = ['data'] }
-proto-tower-stun = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-stun", optional = true, features = ['data'] }
-proto-tower-tls = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-tls", optional = true, features = ['data'] }
-proto-tower-turn = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-turn", optional = true, features = ['data'] }
-proto-tower-webrtc = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-webrtc", optional = true, features = ['data'] }
+proto-tower-dtls = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-dtls", optional = true, features = ['data'] }
+proto-tower-grpc = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-grpc", optional = true, features = ['data'] }
+proto-tower-http-1 = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-1", optional = true, features = ['data'] }
+proto-tower-http-2 = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-2", optional = true, features = ['data'] }
+proto-tower-http-3 = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-3", optional = true, features = ['data'] }
+proto-tower-ice = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-ice", optional = true, features = ['data'] }
+proto-tower-kafka = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-kafka", optional = true, features = ['data'] }
+proto-tower-mqtt = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-mqtt", optional = true, features = ['data'] }
+proto-tower-quic = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-quic", optional = true, features = ['data'] }
+proto-tower-stun = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-stun", optional = true, features = ['data'] }
+proto-tower-tls = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-tls", optional = true, features = ['data'] }
+proto-tower-turn = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-turn", optional = true, features = ['data'] }
+proto-tower-webrtc = { version = "0.1.4", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-webrtc", optional = true, features = ['data'] }
 
