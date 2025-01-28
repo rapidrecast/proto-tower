@@ -1,0 +1,9 @@
+pub mod layer;
+pub mod make_layer;
+
+#[derive(Clone, Debug)]
+pub struct ProtoHttp1ClientConfig {
+    pub max_header_size: usize,
+    pub max_body_size: usize,
+    pub timeout: std::time::Duration,
+}

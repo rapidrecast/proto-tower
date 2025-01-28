@@ -2,7 +2,7 @@ use http::Uri;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// This is what the downstream service will receive
-pub enum HTTP1Event<READER, WRITER>
+pub enum HTTP1ServerEvent<READER, WRITER>
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
@@ -10,6 +10,16 @@ where
     Request(HTTP1Request),
     /// A protocol upgrade including the original request and subsequent response
     ProtocolUpgrade(HTTP1Request, HTTTP1Response, (READER, WRITER)),
+}
+
+pub enum HTTP1ClientResponse<Reader, Writer>
+where
+    Reader: AsyncReadExt + Send + Unpin + 'static,
+    Writer: AsyncWriteExt + Send + Unpin + 'static,
+{
+    Response(HTTTP1Response),
+    /// If the response is a protocol upgrade, you will get this instead of a normal response
+    ProtocolUpgrade(HTTTP1Response, (Reader, Writer)),
 }
 
 /// An HTTP/1.1 request

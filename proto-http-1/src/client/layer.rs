@@ -1,5 +1,4 @@
-use crate::data::{HTTP1ServerEvent, HTTTP1ResponseEvent};
-use crate::server::parser::parse_request;
+use crate::data::{HTTP1Request, HTTP1ServerEvent, HTTTP1ResponseEvent};
 use crate::server::ProtoHttp1Config;
 use http::header::{CONNECTION, UPGRADE};
 use proto_tower::{AsyncReadToBuf, ZeroReadBehaviour};
@@ -13,7 +12,7 @@ use tower::Service;
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
-pub struct ProtoHttp1ServerLayer<Svc, Reader, Writer>
+pub struct ProtoHttp1ClientLayer<Svc, Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
@@ -26,7 +25,7 @@ where
     writer_phantom: PhantomData<Writer>,
 }
 
-impl<Svc, Reader, Writer> ProtoHttp1ServerLayer<Svc, Reader, Writer>
+impl<Svc, Reader, Writer> ProtoHttp1ClientLayer<Svc, Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
@@ -34,7 +33,7 @@ where
 {
     /// Create a new instance of the service
     pub fn new(config: ProtoHttp1Config, inner: Svc) -> Self {
-        ProtoHttp1ServerLayer {
+        ProtoHttp1ClientLayer {
             config,
             inner,
             reader_phantom: PhantomData,
@@ -54,7 +53,7 @@ pub enum ProtoHttp1LayerError<SvcError> {
     InternalServiceError(SvcError),
 }
 
-impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoHttp1ServerLayer<Svc, Reader, Writer>
+impl<Reader, Writer, Svc, SvcError, SvcFut> Service<HTTP1Request> for ProtoHttp1ClientLayer<Svc, Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
@@ -62,7 +61,7 @@ where
     SvcFut: Future<Output = Result<HTTTP1ResponseEvent, SvcError>> + Send,
 {
     /// The response is handled by the protocol
-    type Response = ();
+    type Response = HTTP1ServerEvent<Reader, Writer>;
     /// Errors would be failures in parsing the protocol - this should be handled by the protocol
     type Error = ProtoHttp1LayerError<SvcError>;
     /// The future is the protocol itself

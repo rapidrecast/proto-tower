@@ -10,7 +10,7 @@ members = [
     "proto-mqtt",
     "proto-quic",
     "proto-stun",
-    "proto-tls",
+    "proto-tls", "proto-tower-util",
     "proto-turn",
     "proto-upnp-igd-1",
     "proto-upnp-igd-2",
@@ -22,8 +22,16 @@ name = "proto-tower"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+http-1-data = ["proto-http1"]
+http-1-client = ["proto-http1-client"]
+http-1-server = ["proto-http1-server"]
+
 [dependencies]
 tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt"] }
+proto-http1 = { path = "../proto-http-1", optional = true, features = ['data'] }
+proto-http1-client = { path = "../proto-http-1", optional = true, features = ['data', 'client'] }
+proto-http1-server = { path = "../proto-http-1", optional = true, features = ['data', 'server'] }
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }

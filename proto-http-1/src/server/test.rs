@@ -1,5 +1,5 @@
-use crate::data::{HTTP1Event, HTTTP1Response, HTTTP1ResponseEvent};
-use crate::server::make_layer::ProtoHttp1MakeLayer;
+use crate::data::{HTTP1ServerEvent, HTTTP1Response, HTTTP1ResponseEvent};
+use crate::server::make_layer::ProtoHttp1ServerMakeLayer;
 use crate::server::ProtoHttp1Config;
 use http::header::{CONNECTION, UPGRADE};
 use http::{HeaderMap, HeaderValue};
@@ -17,7 +17,7 @@ async fn test_handler() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
     let mut service = ServiceBuilder::new()
-        .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
+        .layer(ProtoHttp1ServerMakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
             timeout: Duration::from_millis(100),
@@ -42,7 +42,7 @@ async fn test_path() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
     let mut service = ServiceBuilder::new()
-        .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
+        .layer(ProtoHttp1ServerMakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
             timeout: Duration::from_millis(100),
@@ -67,7 +67,7 @@ async fn test_headers() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
     let mut service = ServiceBuilder::new()
-        .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
+        .layer(ProtoHttp1ServerMakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
             timeout: Duration::from_millis(100),
@@ -95,7 +95,7 @@ async fn test_body() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
     let mut service = ServiceBuilder::new()
-        .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
+        .layer(ProtoHttp1ServerMakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
             timeout: Duration::from_millis(100),
@@ -125,7 +125,7 @@ async fn test_protocol_upgrade() {
     let (mut client_reader, server_writer) = tokio::io::duplex(1024);
     let (server_reader, mut client_writer) = tokio::io::duplex(1024);
     let mut service = ServiceBuilder::new()
-        .layer(ProtoHttp1MakeLayer::new(ProtoHttp1Config {
+        .layer(ProtoHttp1ServerMakeLayer::new(ProtoHttp1Config {
             max_header_size: 0,
             max_body_size: 0,
             timeout: Duration::from_millis(100),
@@ -168,7 +168,7 @@ async fn result_if_task_finished<T, E>(task: JoinHandle<Result<T, E>>) -> (Optio
 #[derive(Clone)]
 pub struct TestService;
 
-impl<READER, WRITER> Service<HTTP1Event<READER, WRITER>> for TestService
+impl<READER, WRITER> Service<HTTP1ServerEvent<READER, WRITER>> for TestService
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
     WRITER: AsyncWriteExt + Send + Unpin + 'static,
@@ -181,10 +181,10 @@ where
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: HTTP1Event<READER, WRITER>) -> Self::Future {
+    fn call(&mut self, req: HTTP1ServerEvent<READER, WRITER>) -> Self::Future {
         Box::pin(async move {
             match req {
-                HTTP1Event::Request(req) => {
+                HTTP1ServerEvent::Request(req) => {
                     if req.path.path() == "/" {
                         Ok(HTTTP1ResponseEvent::Response(HTTTP1Response {
                             status: http::StatusCode::OK,
@@ -234,7 +234,7 @@ where
                         }))
                     }
                 }
-                HTTP1Event::ProtocolUpgrade(_req, _resp, (mut read, mut write)) => {
+                HTTP1ServerEvent::ProtocolUpgrade(_req, _resp, (mut read, mut write)) => {
                     let mut buf = [0; 1024];
                     match read.read(&mut buf).await {
                         Ok(n) => match write.write_all(&buf[..n]).await {
