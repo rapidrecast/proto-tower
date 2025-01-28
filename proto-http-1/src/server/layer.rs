@@ -1,4 +1,4 @@
-use crate::data::{HTTP1ServerEvent, Http1ServerResponseEvent};
+use crate::data::{HTTP1ServerEvent, Http1ServerResponseEvent, ProtoHttp1LayerError};
 use crate::server::parser::parse_request;
 use crate::server::ProtoHttp1ServerConfig;
 use http::header::{CONNECTION, UPGRADE};
@@ -41,17 +41,6 @@ where
             writer_phantom: PhantomData,
         }
     }
-}
-
-#[derive(Debug)]
-pub enum ProtoHttp1LayerError<SvcError> {
-    /// An error in the implementation of this layer
-    #[allow(dead_code)]
-    Implementation(String),
-    /// The internal service returned a wrong response
-    InternalServiceWrongResponse,
-    /// An error in the internal service
-    InternalServiceError(SvcError),
 }
 
 impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoHttp1ServerLayer<Svc, Reader, Writer>

@@ -13,6 +13,7 @@ where
 }
 
 /// When the client is called, it returns this value
+#[derive(Debug, Eq, PartialEq)]
 pub enum HTTP1ClientResponse<Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
@@ -39,8 +40,19 @@ pub enum Http1ServerResponseEvent {
     Response(HTTTP1Response),
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum ProtoHttp1LayerError<SvcError> {
+    /// An error in the implementation of this layer
+    #[allow(dead_code)]
+    Implementation(String),
+    /// The internal service returned a wrong response
+    InternalServiceWrongResponse,
+    /// An error in the internal service
+    InternalServiceError(SvcError),
+}
+
 /// An HTTP/1.1 response
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct HTTTP1Response {
     pub status: http::StatusCode,
     pub headers: http::HeaderMap,
