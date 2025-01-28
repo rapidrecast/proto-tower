@@ -1,19 +1,19 @@
 [workspace]
 members = [
-    "proto-dtls",
-    "proto-grpc",
-    "proto-http-1",
-    "proto-http-2",
-    "proto-http-3",
-    "proto-ice",
-    "proto-kafka",
-    "proto-mqtt",
-    "proto-quic",
-    "proto-stun",
-    "proto-tls",
+    "proto-tower-dtls",
+    "proto-tower-grpc",
+    "proto-tower-http-1",
+    "proto-tower-http-2",
+    "proto-tower-http-3",
+    "proto-tower-ice",
+    "proto-tower-kafka",
+    "proto-tower-mqtt",
+    "proto-tower-quic",
+    "proto-tower-stun",
+    "proto-tower-tls",
     "proto-tower-util",
-    "proto-turn",
-    "proto-webrtc",
+    "proto-tower-turn",
+    "proto-tower-webrtc",
 ]
 
 [package]
@@ -38,70 +38,70 @@ all = [
     "webrtc-client", "webrtc-server",
 ]
 
-dtls-data = ["proto-dtls"]
-dtls-client = ["dtls-data", "proto-dtls/client"]
-dtls-server = ["dtls-data", "proto-dtls/server"]
+dtls-data = ["proto-tower-dtls"]
+dtls-client = ["dtls-data", "proto-tower-dtls/client"]
+dtls-server = ["dtls-data", "proto-tower-dtls/server"]
 
-grpc-data = ["proto-grpc"]
-grpc-client = ["grpc-data", "proto-grpc/client"]
-grpc-server = ["grpc-data", "proto-grpc/server"]
+grpc-data = ["proto-tower-grpc"]
+grpc-client = ["grpc-data", "proto-tower-grpc/client"]
+grpc-server = ["grpc-data", "proto-tower-grpc/server"]
 
-http-1-data = ["proto-http-1"]
-http-1-client = ["http-1-data", "proto-http-1/client"]
-http-1-server = ["http-1-data", "proto-http-1/server"]
+http-1-data = ["proto-tower-http-1"]
+http-1-client = ["http-1-data", "proto-tower-http-1/client"]
+http-1-server = ["http-1-data", "proto-tower-http-1/server"]
 
-http-2-data = ["proto-http-2"]
-http-2-client = ["http-2-data", "proto-http-2/client"]
-http-2-server = ["http-2-data", "proto-http-2/server"]
+http-2-data = ["proto-tower-http-2"]
+http-2-client = ["http-2-data", "proto-tower-http-2/client"]
+http-2-server = ["http-2-data", "proto-tower-http-2/server"]
 
-http-3-data = ["proto-http-3"]
-http-3-client = ["http-3-data", "proto-http-3/client"]
-http-3-server = ["http-3-data", "proto-http-3/server"]
+http-3-data = ["proto-tower-http-3"]
+http-3-client = ["http-3-data", "proto-tower-http-3/client"]
+http-3-server = ["http-3-data", "proto-tower-http-3/server"]
 
-ice-data = ["proto-ice"]
-ice-client = ["ice-data", "proto-ice/client"]
-ice-server = ["ice-data", "proto-ice/server"]
+ice-data = ["proto-tower-ice"]
+ice-client = ["ice-data", "proto-tower-ice/client"]
+ice-server = ["ice-data", "proto-tower-ice/server"]
 
-kafka-data = ["proto-kafka"]
-kafka-client = ["kafka-data", "proto-kafka/client"]
-kafka-server = ["kafka-data", "proto-kafka/server"]
+kafka-data = ["proto-tower-kafka"]
+kafka-client = ["kafka-data", "proto-tower-kafka/client"]
+kafka-server = ["kafka-data", "proto-tower-kafka/server"]
 
-mqtt-data = ["proto-mqtt"]
-mqtt-client = ["mqtt-data", "proto-mqtt/client"]
-mqtt-server = ["mqtt-data", "proto-mqtt/server"]
+mqtt-data = ["proto-tower-mqtt"]
+mqtt-client = ["mqtt-data", "proto-tower-mqtt/client"]
+mqtt-server = ["mqtt-data", "proto-tower-mqtt/server"]
 
-quic-data = ["proto-quic"]
-quic-client = ["quic-data", "proto-quic/client"]
-quic-server = ["quic-data", "proto-quic/server"]
+quic-data = ["proto-tower-quic"]
+quic-client = ["quic-data", "proto-tower-quic/client"]
+quic-server = ["quic-data", "proto-tower-quic/server"]
 
-stun-data = ["proto-stun"]
-stun-client = ["stun-data", "proto-stun/client"]
-stun-server = ["stun-data", "proto-stun/server"]
+stun-data = ["proto-tower-stun"]
+stun-client = ["stun-data", "proto-tower-stun/client"]
+stun-server = ["stun-data", "proto-tower-stun/server"]
 
-tls-data = ["proto-tls"]
-tls-client = ["tls-data", "proto-tls/client"]
-tls-server = ["tls-data", "proto-tls/server"]
+tls-data = ["proto-tower-tls"]
+tls-client = ["tls-data", "proto-tower-tls/client"]
+tls-server = ["tls-data", "proto-tower-tls/server"]
 
-turn-data = ["proto-turn"]
-turn-client = ["turn-data", "proto-turn/client"]
-turn-server = ["turn-data", "proto-turn/server"]
+turn-data = ["proto-tower-turn"]
+turn-client = ["turn-data", "proto-tower-turn/client"]
+turn-server = ["turn-data", "proto-tower-turn/server"]
 
-webrtc-data = ["proto-webrtc"]
-webrtc-client = ["webrtc-data", "proto-webrtc/client"]
-webrtc-server = ["webrtc-data", "proto-webrtc/server"]
+webrtc-data = ["proto-tower-webrtc"]
+webrtc-client = ["webrtc-data", "proto-tower-webrtc/client"]
+webrtc-server = ["webrtc-data", "proto-tower-webrtc/server"]
 
 [dependencies]
-proto-dtls = { path = "proto-dtls", optional = true, features = ['data'] }
-proto-grpc = { path = "proto-grpc", optional = true, features = ['data'] }
-proto-http-1 = { path = "proto-http-1", optional = true, features = ['data'] }
-proto-http-2 = { path = "proto-http-2", optional = true, features = ['data'] }
-proto-http-3 = { path = "proto-http-3", optional = true, features = ['data'] }
-proto-ice = { path = "proto-ice", optional = true, features = ['data'] }
-proto-kafka = { path = "proto-kafka", optional = true, features = ['data'] }
-proto-mqtt = { path = "proto-mqtt", optional = true, features = ['data'] }
-proto-quic = { path = "proto-quic", optional = true, features = ['data'] }
-proto-stun = { path = "proto-stun", optional = true, features = ['data'] }
-proto-tls = { path = "proto-tls", optional = true, features = ['data'] }
-proto-turn = { path = "proto-turn", optional = true, features = ['data'] }
-proto-webrtc = { path = "proto-webrtc", optional = true, features = ['data'] }
+proto-tower-dtls = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-dtls", optional = true, features = ['data'] }
+proto-tower-grpc = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-grpc", optional = true, features = ['data'] }
+proto-tower-http-1 = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-1", optional = true, features = ['data'] }
+proto-tower-http-2 = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-2", optional = true, features = ['data'] }
+proto-tower-http-3 = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-http-3", optional = true, features = ['data'] }
+proto-tower-ice = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-ice", optional = true, features = ['data'] }
+proto-tower-kafka = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-kafka", optional = true, features = ['data'] }
+proto-tower-mqtt = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-mqtt", optional = true, features = ['data'] }
+proto-tower-quic = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-quic", optional = true, features = ['data'] }
+proto-tower-stun = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-stun", optional = true, features = ['data'] }
+proto-tower-tls = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-tls", optional = true, features = ['data'] }
+proto-tower-turn = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-turn", optional = true, features = ['data'] }
+proto-tower-webrtc = { git = "https://github.com/rapidrecast/proto-tower.git", branch = "main", package = "proto-tower-webrtc", optional = true, features = ['data'] }
 

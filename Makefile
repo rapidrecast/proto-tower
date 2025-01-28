@@ -1,0 +1,16 @@
+publish:
+	(cd proto-tower-util; cargo publish)
+	(cd proto-tower-dtls; cargo publish)
+	(cd proto-tower-grpc; cargo publish)
+	(cd proto-tower-http-1; cargo publish)
+	(cd proto-tower-http-2; cargo publish)
+	(cd proto-tower-http-3; cargo publish)
+	(cd proto-tower-ice; cargo publish)
+	(cd proto-tower-kafka; cargo publish)
+	(cd proto-tower-mqtt; cargo publish)
+	(cd proto-tower-quic; cargo publish)
+	(cd proto-tower-stun; cargo publish)
+	(cd proto-tower-tls; cargo publish)
+	(cd proto-tower-turn; cargo publish)
+	(cd proto-tower-webrtc; cargo publish)
+	cargo publish

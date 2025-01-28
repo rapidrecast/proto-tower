@@ -1,5 +1,5 @@
 [package]
-name = "proto-quic"
+name = "proto-tower-tls"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,5 +1,5 @@
 [package]
-name = "proto-grpc"
+name = "proto-tower-mqtt"
 version = "0.1.0"
 edition = "2021"
 

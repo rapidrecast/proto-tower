@@ -1,5 +1,5 @@
 [package]
-name = "proto-dtls"
+name = "proto-tower-http-3"
 version = "0.1.0"
 edition = "2021"
 
