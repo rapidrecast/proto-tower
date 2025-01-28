@@ -27,13 +27,17 @@ async fn test_client() {
         .await;
     let res = res.unwrap();
 
+    let res = match res {
+        HTTP1ClientResponse::Response(res) => res,
+        HTTP1ClientResponse::ProtocolUpgrade(_, _) => panic!(),
+    };
     assert_eq!(
         res,
-        HTTP1ClientResponse::Response(HTTTP1Response {
+        HTTTP1Response {
             status: StatusCode::OK,
             headers: Default::default(),
             body: vec![],
-        })
+        }
     );
 }
 

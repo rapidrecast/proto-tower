@@ -1,42 +1,30 @@
 use crate::client::ProtoHttp1ClientConfig;
 use crate::data::{HTTP1ClientResponse, HTTP1Request};
 use std::future::Future;
-use std::marker::PhantomData;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::DuplexStream;
 use tower::Service;
 
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
-pub struct ProtoHttp1ClientLayer<Svc, Reader, Writer>
+pub struct ProtoHttp1ClientLayer<Svc>
 where
-    Reader: AsyncReadExt + Send + Unpin + 'static,
-    Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
+    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
 {
     config: ProtoHttp1ClientConfig,
     /// The inner service to process requests
     inner: Svc,
-    reader_phantom: PhantomData<Reader>,
-    writer_phantom: PhantomData<Writer>,
 }
 
-impl<Svc, Reader, Writer> ProtoHttp1ClientLayer<Svc, Reader, Writer>
+impl<Svc> ProtoHttp1ClientLayer<Svc>
 where
-    Reader: AsyncReadExt + Send + Unpin + 'static,
-    Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
+    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the service
     pub fn new(config: ProtoHttp1ClientConfig, inner: Svc) -> Self {
-        ProtoHttp1ClientLayer {
-            config,
-            inner,
-            reader_phantom: PhantomData,
-            writer_phantom: PhantomData,
-        }
+        ProtoHttp1ClientLayer { config, inner }
     }
 }
 
@@ -51,15 +39,13 @@ pub enum ProtoHttp1LayerError<SvcError> {
     InternalServiceError(SvcError),
 }
 
-impl<Reader, Writer, Svc, SvcError, SvcFut> Service<HTTP1Request> for ProtoHttp1ClientLayer<Svc, Reader, Writer>
+impl<Svc, SvcError, SvcFut> Service<HTTP1Request> for ProtoHttp1ClientLayer<Svc>
 where
-    Reader: AsyncReadExt + Send + Unpin + 'static,
-    Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<(Reader, Writer), Response = (), Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
+    Svc: Service<(DuplexStream, DuplexStream), Response = (), Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
     SvcFut: Future<Output = Result<(), SvcError>> + Send,
 {
     /// The response is handled by the protocol
-    type Response = HTTP1ClientResponse<Reader, Writer>;
+    type Response = HTTP1ClientResponse<DuplexStream, DuplexStream>;
     /// Errors would be failures in parsing the protocol - this should be handled by the protocol
     type Error = ProtoHttp1LayerError<SvcError>;
     /// The future is the protocol itself
@@ -73,6 +59,9 @@ where
     fn call(&mut self, request: HTTP1Request) -> Self::Future {
         let mut service = self.inner.clone();
         let config = self.config.clone();
-        Box::pin(async move { todo!() })
+        Box::pin(async move {
+            let (read, write) = tokio::io::duplex(1024);
+            todo!()
+        })
     }
 }

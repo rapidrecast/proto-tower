@@ -1,48 +1,38 @@
 use crate::client::layer::ProtoHttp1ClientLayer;
 use crate::client::ProtoHttp1ClientConfig;
 use std::marker::PhantomData;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::DuplexStream;
 use tower::{Layer, Service};
 
 /// This is the initializer for the layer.
 /// Invocations to the service will take the sender and receiver of the connection and process
 /// the full lifetime.
-pub struct ProtoHttp1ClientMakeLayer<Svc, Reader, Writer>
+pub struct ProtoHttp1ClientMakeLayer<Svc>
 where
-    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
-    Reader: AsyncReadExt + Send + Unpin + 'static,
-    Writer: AsyncWriteExt + Send + Unpin + 'static,
+    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
 {
     config: ProtoHttp1ClientConfig,
     phantom_service: PhantomData<Svc>,
-    phantom_reader: PhantomData<Reader>,
-    phantom_writer: PhantomData<Writer>,
 }
 
-impl<Svc, Reader, Writer> ProtoHttp1ClientMakeLayer<Svc, Reader, Writer>
+impl<Svc> ProtoHttp1ClientMakeLayer<Svc>
 where
-    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
-    Reader: AsyncReadExt + Send + Unpin + 'static,
-    Writer: AsyncWriteExt + Send + Unpin + 'static,
+    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the layer
     pub fn new(config: ProtoHttp1ClientConfig) -> Self {
         ProtoHttp1ClientMakeLayer {
             phantom_service: PhantomData,
             config,
-            phantom_reader: PhantomData,
-            phantom_writer: PhantomData,
         }
     }
 }
 
-impl<Svc, Reader, Writer> Layer<Svc> for ProtoHttp1ClientMakeLayer<Svc, Reader, Writer>
+impl<Svc> Layer<Svc> for ProtoHttp1ClientMakeLayer<Svc>
 where
-    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
-    Reader: AsyncReadExt + Send + Unpin + 'static,
-    Writer: AsyncWriteExt + Send + Unpin + 'static,
+    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
 {
-    type Service = ProtoHttp1ClientLayer<Svc, Reader, Writer>;
+    type Service = ProtoHttp1ClientLayer<Svc>;
 
     fn layer(&self, inner: Svc) -> Self::Service {
         ProtoHttp1ClientLayer::new(self.config.clone(), inner)
