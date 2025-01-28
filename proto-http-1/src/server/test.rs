@@ -3,7 +3,7 @@ use crate::server::make_layer::ProtoHttp1ServerMakeLayer;
 use crate::server::ProtoHttp1Config;
 use http::header::{CONNECTION, UPGRADE};
 use http::{HeaderMap, HeaderValue};
-use proto_tower::ZeroReadBehaviour;
+use proto_tower_util::ZeroReadBehaviour;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};

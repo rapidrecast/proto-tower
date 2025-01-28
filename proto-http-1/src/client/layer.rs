@@ -1,7 +1,7 @@
 use crate::data::{HTTP1Request, HTTP1ServerEvent, HTTTP1ResponseEvent};
 use crate::server::ProtoHttp1Config;
 use http::header::{CONNECTION, UPGRADE};
-use proto_tower::{AsyncReadToBuf, ZeroReadBehaviour};
+use proto_tower_util::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;

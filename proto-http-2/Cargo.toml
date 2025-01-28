@@ -1,12 +1,16 @@
 [package]
-name = "proto-h2c"
+name = "proto-http-2"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+data = []
+client = ["data"]
+server = ["data"]
+
 [dependencies]
 tower = "0.5.2"
-http = "1.2.0"
 tokio = { version = "1.43.0", features = ["io-util", "time", "sync"] }
 parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main" }
-proto-tower = { path = ".." }
+proto-tower-util = { path = "../proto-tower-util" }
 async-trait = "0.1.85"

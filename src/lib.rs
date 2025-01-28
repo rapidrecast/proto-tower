@@ -1,109 +1,89 @@
-//! This should not be included directly by users of this library
-//! It includes shared helper code
+#[cfg(feature = "dtls-client")]
+pub use proto_dtls::client as proto_dtls_client;
+#[cfg(feature = "dtls-data")]
+pub use proto_dtls::data as proto_dtls_data;
+#[cfg(feature = "dtls-server")]
+pub use proto_dtls::server as proto_dtls_server;
+#[cfg(feature = "grpc-client")]
+pub use proto_grpc::client as proto_grpc_client;
+#[cfg(feature = "grpc-data")]
+pub use proto_grpc::data as proto_grpc_data;
+#[cfg(feature = "grpc-server")]
+pub use proto_grpc::server as proto_grpc_server;
 
-use std::cmp::min;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::time::Duration;
-use tokio::io::AsyncReadExt;
+#[cfg(feature = "http-1-client")]
+pub use proto_http_1::client as proto_http_1_client;
+#[cfg(feature = "http-1-data")]
+pub use proto_http_1::data as proto_http_1_data;
+#[cfg(feature = "http-1-server")]
+pub use proto_http_1::server as proto_http_1_server;
 
-pub enum ZeroReadBehaviour {
-    TickAndYield,
-    TickSleep,
-    // TickMeasure,
-}
+#[cfg(feature = "http-2-client")]
+pub use proto_http_2::client as proto_http_2_client;
+#[cfg(feature = "http-2-data")]
+pub use proto_http_2::data as proto_http_2_data;
+#[cfg(feature = "http-2-server")]
+pub use proto_http_2::server as proto_http_2_server;
 
-/// A helper to read data within a timeout
-/// This handles both the cases where the read(&mut buffer) may not return any data or constantly return len 0
-pub struct AsyncReadToBuf<const S: usize> {
-    zero_read_behaviour: ZeroReadBehaviour,
-}
+#[cfg(feature = "http-3-client")]
+pub use proto_http_3::client as proto_http_3_client;
+#[cfg(feature = "http-3-data")]
+pub use proto_http_3::data as proto_http_3_data;
+#[cfg(feature = "http-3-server")]
+pub use proto_http_3::server as proto_http_3_server;
 
-impl AsyncReadToBuf<1024> {
-    pub const fn new_1024(zero_read_behaviour: ZeroReadBehaviour) -> AsyncReadToBuf<1024> {
-        AsyncReadToBuf::<1024> { zero_read_behaviour }
-    }
-}
+#[cfg(feature = "ice-client")]
+pub use proto_ice::client as proto_ice_client;
+#[cfg(feature = "ice-data")]
+pub use proto_ice::data as proto_ice_data;
+#[cfg(feature = "ice-server")]
+pub use proto_ice::server as proto_ice_server;
 
-impl<const S: usize> AsyncReadToBuf<S> {
-    pub const fn new(zero_read_behaviour: ZeroReadBehaviour) -> Self {
-        AsyncReadToBuf::<S> { zero_read_behaviour }
-    }
+#[cfg(feature = "kafka-client")]
+pub use proto_kafka::client as proto_kafka_client;
+#[cfg(feature = "kafka-data")]
+pub use proto_kafka::data as proto_kafka_data;
+#[cfg(feature = "kafka-server")]
+pub use proto_kafka::server as proto_kafka_server;
 
-    pub async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut READ, timeout: Duration, desired_size: Option<usize>) -> Vec<u8> {
-        // TODO(https://github.com/rapidrecast/proto-tower/issues/1): Use async read buffer
-        let mut data = match desired_size {
-            None => Vec::new(),
-            Some(sz) => Vec::with_capacity(sz),
-        };
-        let mut buffer = [0u8; S];
-        let finished = AtomicBool::new(false);
-        let tries = AtomicU32::new(0);
-        const MAX_TRIES: u32 = 10;
-        let calculated_timeout = timeout / MAX_TRIES;
-        while !finished.load(Ordering::SeqCst) && tries.load(Ordering::SeqCst) < MAX_TRIES {
-            let buf_size = match desired_size {
-                None => S,
-                Some(sz) => min(S, sz - data.len()),
-            };
-            tokio::select! {
-                _ = tokio::time::sleep(calculated_timeout) => {
-                    let new_tries = tries.fetch_add(1, Ordering::SeqCst) + 1;
-                    if new_tries >= MAX_TRIES {
-                        finished.store(true, Ordering::SeqCst);
-                    }
-                }
-                n = reader.read(&mut buffer[..buf_size]) => {
-                    match n {
-                        Ok(n) => {
-                            if n != 0 {
-                                data.extend_from_slice(&buffer[..n]);
-                                tries.store(0, Ordering::SeqCst);
-                            } else {
-                                match self.zero_read_behaviour {
-                                    ZeroReadBehaviour::TickAndYield => {
-                                        tries.fetch_add(1, Ordering::SeqCst);
-                                        tokio::task::yield_now().await;
-                                    }
-                                    ZeroReadBehaviour::TickSleep => {
-                                        tries.fetch_add(1, Ordering::SeqCst);
-                                        tokio::time::sleep(calculated_timeout).await;
-                                    }
-                                }
+#[cfg(feature = "mqtt-client")]
+pub use proto_mqtt::client as proto_mqtt_client;
+#[cfg(feature = "mqtt-data")]
+pub use proto_mqtt::data as proto_mqtt_data;
+#[cfg(feature = "mqtt-server")]
+pub use proto_mqtt::server as proto_mqtt_server;
 
-                            }
-                        }
-                        Err(_) => {
-                            finished.store(true, Ordering::SeqCst);
-                        }
-                    }
-                }
-            }
-        }
-        data
-    }
-}
+#[cfg(feature = "quic-client")]
+pub use proto_quic::client as proto_quic_client;
+#[cfg(feature = "quic-data")]
+pub use proto_quic::data as proto_quic_data;
+#[cfg(feature = "quic-server")]
+pub use proto_quic::server as proto_quic_server;
 
-#[cfg(test)]
-mod test {
-    use crate::{AsyncReadToBuf, ZeroReadBehaviour};
-    use std::io::Cursor;
-    use std::time::Duration;
+#[cfg(feature = "stun-client")]
+pub use proto_stun::client as proto_stun_client;
+#[cfg(feature = "stun-data")]
+pub use proto_stun::data as proto_stun_data;
+#[cfg(feature = "stun-server")]
+pub use proto_stun::server as proto_stun_server;
 
-    #[tokio::test]
-    async fn test_limited_read() {
-        let data = b"hello world";
-        let mut cursor = Cursor::new(data);
-        let async_read = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-        let result = async_read.read_with_timeout(&mut cursor, Duration::from_secs(1), Some(5)).await;
-        assert_eq!(result, b"hello");
-    }
+#[cfg(feature = "tls-client")]
+pub use proto_tls::client as proto_tls_client;
+#[cfg(feature = "tls-data")]
+pub use proto_tls::data as proto_tls_data;
+#[cfg(feature = "tls-server")]
+pub use proto_tls::server as proto_tls_server;
 
-    #[tokio::test]
-    async fn test_large_read() {
-        let data = [0xff; 4096];
-        let mut cursor = Cursor::new(data);
-        let async_read = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
-        let result = async_read.read_with_timeout(&mut cursor, Duration::from_secs(1), Some(2050)).await;
-        assert_eq!(result, &[0xff; 2050]);
-    }
-}
+#[cfg(feature = "turn-client")]
+pub use proto_turn::client as proto_turn_client;
+#[cfg(feature = "turn-data")]
+pub use proto_turn::data as proto_turn_data;
+#[cfg(feature = "turn-server")]
+pub use proto_turn::server as proto_turn_server;
+
+#[cfg(feature = "webrtc-client")]
+pub use proto_webrtc::client as proto_webrtc_client;
+#[cfg(feature = "webrtc-data")]
+pub use proto_webrtc::data as proto_webrtc_data;
+#[cfg(feature = "webrtc-server")]
+pub use proto_webrtc::server as proto_webrtc_server;

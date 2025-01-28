@@ -10,10 +10,9 @@ members = [
     "proto-mqtt",
     "proto-quic",
     "proto-stun",
-    "proto-tls", "proto-tower-util",
+    "proto-tls",
+    "proto-tower-util",
     "proto-turn",
-    "proto-upnp-igd-1",
-    "proto-upnp-igd-2",
     "proto-webrtc",
 ]
 
@@ -23,15 +22,86 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-http-1-data = ["proto-http1"]
-http-1-client = ["proto-http1-client"]
-http-1-server = ["proto-http1-server"]
+all = [
+    "dtls-client", "dtls-server",
+    "grpc-client", "grpc-server",
+    "http-1-client", "http-1-server",
+    "http-2-client", "http-2-server",
+    "http-3-client", "http-3-server",
+    "ice-client", "ice-server",
+    "kafka-client", "kafka-server",
+    "mqtt-client", "mqtt-server",
+    "quic-client", "quic-server",
+    "stun-client", "stun-server",
+    "tls-client", "tls-server",
+    "turn-client", "turn-server",
+    "webrtc-client", "webrtc-server",
+]
+
+dtls-data = ["proto-dtls"]
+dtls-client = ["dtls-data", "proto-dtls/client"]
+dtls-server = ["dtls-data", "proto-dtls/server"]
+
+grpc-data = ["proto-grpc"]
+grpc-client = ["grpc-data", "proto-grpc/client"]
+grpc-server = ["grpc-data", "proto-grpc/server"]
+
+http-1-data = ["proto-http-1"]
+http-1-client = ["http-1-data", "proto-http-1/client"]
+http-1-server = ["http-1-data", "proto-http-1/server"]
+
+http-2-data = ["proto-http-2"]
+http-2-client = ["http-2-data", "proto-http-2/client"]
+http-2-server = ["http-2-data", "proto-http-2/server"]
+
+http-3-data = ["proto-http-3"]
+http-3-client = ["http-3-data", "proto-http-3/client"]
+http-3-server = ["http-3-data", "proto-http-3/server"]
+
+ice-data = ["proto-ice"]
+ice-client = ["ice-data", "proto-ice/client"]
+ice-server = ["ice-data", "proto-ice/server"]
+
+kafka-data = ["proto-kafka"]
+kafka-client = ["kafka-data", "proto-kafka/client"]
+kafka-server = ["kafka-data", "proto-kafka/server"]
+
+mqtt-data = ["proto-mqtt"]
+mqtt-client = ["mqtt-data", "proto-mqtt/client"]
+mqtt-server = ["mqtt-data", "proto-mqtt/server"]
+
+quic-data = ["proto-quic"]
+quic-client = ["quic-data", "proto-quic/client"]
+quic-server = ["quic-data", "proto-quic/server"]
+
+stun-data = ["proto-stun"]
+stun-client = ["stun-data", "proto-stun/client"]
+stun-server = ["stun-data", "proto-stun/server"]
+
+tls-data = ["proto-tls"]
+tls-client = ["tls-data", "proto-tls/client"]
+tls-server = ["tls-data", "proto-tls/server"]
+
+turn-data = ["proto-turn"]
+turn-client = ["turn-data", "proto-turn/client"]
+turn-server = ["turn-data", "proto-turn/server"]
+
+webrtc-data = ["proto-webrtc"]
+webrtc-client = ["webrtc-data", "proto-webrtc/client"]
+webrtc-server = ["webrtc-data", "proto-webrtc/server"]
 
 [dependencies]
-tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt"] }
-proto-http1 = { path = "../proto-http-1", optional = true, features = ['data'] }
-proto-http1-client = { path = "../proto-http-1", optional = true, features = ['data', 'client'] }
-proto-http1-server = { path = "../proto-http-1", optional = true, features = ['data', 'server'] }
+proto-dtls = { path = "proto-dtls", optional = true, features = ['data'] }
+proto-grpc = { path = "proto-grpc", optional = true, features = ['data'] }
+proto-http-1 = { path = "proto-http-1", optional = true, features = ['data'] }
+proto-http-2 = { path = "proto-http-2", optional = true, features = ['data'] }
+proto-http-3 = { path = "proto-http-3", optional = true, features = ['data'] }
+proto-ice = { path = "proto-ice", optional = true, features = ['data'] }
+proto-kafka = { path = "proto-kafka", optional = true, features = ['data'] }
+proto-mqtt = { path = "proto-mqtt", optional = true, features = ['data'] }
+proto-quic = { path = "proto-quic", optional = true, features = ['data'] }
+proto-stun = { path = "proto-stun", optional = true, features = ['data'] }
+proto-tls = { path = "proto-tls", optional = true, features = ['data'] }
+proto-turn = { path = "proto-turn", optional = true, features = ['data'] }
+proto-webrtc = { path = "proto-webrtc", optional = true, features = ['data'] }
 
-[dev-dependencies]
-tokio = { version = "1.43.0", features = ["rt-multi-thread"] }

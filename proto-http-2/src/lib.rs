@@ -1,8 +1,8 @@
 use tokio::io::AsyncWriteExt;
 
-pub mod layer;
-pub mod make_layer;
-mod parser;
+pub mod client;
+pub mod data;
+pub mod server;
 
 #[derive(Clone, Debug)]
 pub struct ProtoHttp2Config {
