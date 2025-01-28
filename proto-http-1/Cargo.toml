@@ -15,9 +15,10 @@ server = ["data"]
 [dependencies]
 http = "1.2.0"
 tokio = { version = "1.43.0", features = ["io-util", "time"] }
-tower = "0.5.2"
+tower = { version = "0.5.2" }
 parser-helper = { git = "https://github.com/rapidrecast/parser-helper.git", branch = "main" }
 proto-tower-util = { path = "../proto-tower-util" }
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.5.2", features = ["util"] }

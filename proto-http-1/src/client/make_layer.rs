@@ -1,6 +1,5 @@
 use crate::client::layer::ProtoHttp1ClientLayer;
-use crate::data::{HTTP1ServerEvent, HTTTP1ResponseEvent};
-use crate::server::ProtoHttp1Config;
+use crate::client::ProtoHttp1ClientConfig;
 use std::marker::PhantomData;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::{Layer, Service};
@@ -10,11 +9,11 @@ use tower::{Layer, Service};
 /// the full lifetime.
 pub struct ProtoHttp1ClientMakeLayer<Svc, Reader, Writer>
 where
-    Svc: Service<(Reader, Writer), Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {
-    config: ProtoHttp1Config,
+    config: ProtoHttp1ClientConfig,
     phantom_service: PhantomData<Svc>,
     phantom_reader: PhantomData<Reader>,
     phantom_writer: PhantomData<Writer>,
@@ -22,12 +21,12 @@ where
 
 impl<Svc, Reader, Writer> ProtoHttp1ClientMakeLayer<Svc, Reader, Writer>
 where
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {
     /// Create a new instance of the layer
-    pub fn new(config: ProtoHttp1Config) -> Self {
+    pub fn new(config: ProtoHttp1ClientConfig) -> Self {
         ProtoHttp1ClientMakeLayer {
             phantom_service: PhantomData,
             config,
@@ -39,7 +38,7 @@ where
 
 impl<Svc, Reader, Writer> Layer<Svc> for ProtoHttp1ClientMakeLayer<Svc, Reader, Writer>
 where
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<(Reader, Writer), Response = ()> + Send + Clone,
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {

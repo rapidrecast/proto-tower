@@ -1,6 +1,6 @@
-use crate::data::{HTTP1ServerEvent, HTTTP1ResponseEvent};
+use crate::data::{HTTP1ServerEvent, Http1ServerResponseEvent};
 use crate::server::parser::parse_request;
-use crate::server::ProtoHttp1Config;
+use crate::server::ProtoHttp1ServerConfig;
 use http::header::{CONNECTION, UPGRADE};
 use proto_tower_util::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::future::Future;
@@ -17,9 +17,9 @@ pub struct ProtoHttp1ServerLayer<Svc, Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = Http1ServerResponseEvent> + Send + Clone,
 {
-    config: ProtoHttp1Config,
+    config: ProtoHttp1ServerConfig,
     /// The inner service to process requests
     inner: Svc,
     reader_phantom: PhantomData<Reader>,
@@ -30,10 +30,10 @@ impl<Svc, Reader, Writer> ProtoHttp1ServerLayer<Svc, Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = Http1ServerResponseEvent> + Send + Clone,
 {
     /// Create a new instance of the service
-    pub fn new(config: ProtoHttp1Config, inner: Svc) -> Self {
+    pub fn new(config: ProtoHttp1ServerConfig, inner: Svc) -> Self {
         ProtoHttp1ServerLayer {
             config,
             inner,
@@ -58,8 +58,8 @@ impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoH
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent, Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
-    SvcFut: Future<Output = Result<HTTTP1ResponseEvent, SvcError>> + Send,
+    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = Http1ServerResponseEvent, Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
+    SvcFut: Future<Output = Result<Http1ServerResponseEvent, SvcError>> + Send,
 {
     /// The response is handled by the protocol
     type Response = ();
@@ -90,7 +90,7 @@ where
                                 .await
                                 .map_err(|e| ProtoHttp1LayerError::InternalServiceError(e))?;
                             let res = match res {
-                                HTTTP1ResponseEvent::Response(res) => res,
+                                Http1ServerResponseEvent::Response(res) => res,
                                 // TODO we need a better error to indicate wrong response from  service
                                 _ => return Err(ProtoHttp1LayerError::InternalServiceWrongResponse),
                             };

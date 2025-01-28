@@ -1,6 +1,6 @@
-use crate::data::{HTTP1ServerEvent, HTTTP1ResponseEvent};
+use crate::data::{HTTP1ServerEvent, Http1ServerResponseEvent};
 use crate::server::layer::ProtoHttp1ServerLayer;
-use crate::server::ProtoHttp1Config;
+use crate::server::ProtoHttp1ServerConfig;
 use std::marker::PhantomData;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::{Layer, Service};
@@ -10,11 +10,11 @@ use tower::{Layer, Service};
 /// the full lifetime.
 pub struct ProtoHttp1ServerMakeLayer<Svc, Reader, Writer>
 where
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = Http1ServerResponseEvent> + Send + Clone,
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {
-    config: ProtoHttp1Config,
+    config: ProtoHttp1ServerConfig,
     phantom_service: PhantomData<Svc>,
     phantom_reader: PhantomData<Reader>,
     phantom_writer: PhantomData<Writer>,
@@ -22,12 +22,12 @@ where
 
 impl<Svc, Reader, Writer> ProtoHttp1ServerMakeLayer<Svc, Reader, Writer>
 where
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = Http1ServerResponseEvent> + Send + Clone,
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {
     /// Create a new instance of the layer
-    pub fn new(config: ProtoHttp1Config) -> Self {
+    pub fn new(config: ProtoHttp1ServerConfig) -> Self {
         ProtoHttp1ServerMakeLayer {
             phantom_service: PhantomData,
             config,
@@ -39,7 +39,7 @@ where
 
 impl<Svc, Reader, Writer> Layer<Svc> for ProtoHttp1ServerMakeLayer<Svc, Reader, Writer>
 where
-    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = HTTTP1ResponseEvent> + Send + Clone,
+    Svc: Service<HTTP1ServerEvent<Reader, Writer>, Response = Http1ServerResponseEvent> + Send + Clone,
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {

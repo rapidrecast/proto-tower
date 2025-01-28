@@ -1,7 +1,7 @@
 use http::Uri;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-/// This is what the downstream service will receive
+/// A service downstream from HTTP1ServerLayer will receive these structs
 pub enum HTTP1ServerEvent<READER, WRITER>
 where
     READER: AsyncReadExt + Send + Unpin + 'static,
@@ -12,6 +12,7 @@ where
     ProtocolUpgrade(HTTP1Request, HTTTP1Response, (READER, WRITER)),
 }
 
+/// When the client is called, it returns this value
 pub enum HTTP1ClientResponse<Reader, Writer>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
@@ -31,7 +32,7 @@ pub struct HTTP1Request {
     pub body: Vec<u8>,
 }
 
-pub enum HTTTP1ResponseEvent {
+pub enum Http1ServerResponseEvent {
     /// Use this for protocol upgrades
     NoResponseExpected,
     /// Use this for request responses
