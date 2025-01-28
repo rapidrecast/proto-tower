@@ -82,7 +82,7 @@ graph TD
     classDef pink1 fill: #aa00aa, stroke: #333, stroke-width: 2px, color:#ffffff;
     classDef pink2 fill: #aa33aa, stroke: #333, stroke-width: 2px, color:#ffffff;
     classDef pink3 fill: #aa55aa, stroke: #333, stroke-width: 2px, color:#ffffff;
-    classDef grey fill: #ddd, stroke: #333, stroke-width: 2px;
-    classDef structure fill: #0000aa, stroke: #333, stroke-width: 2px;
+    classDef grey fill: #ddd, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef structure fill: #0000aa, stroke: #333, stroke-width: 2px, color:#ffffff;
     classDef note fill: #ffeb3b, stroke: #ff9800, stroke-width: 2px, color: #000, font-style: italic, font-size: 12px;
 ```
