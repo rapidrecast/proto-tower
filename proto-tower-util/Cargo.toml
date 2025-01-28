@@ -2,6 +2,12 @@
 name = "proto-tower-util"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "RapidRecast <hugh@rapidrecast.io>",
+]
+description = "Helper tools for Tower protocol implementations"
+license = "GPL-3"
+
 
 [dependencies]
 tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt"] }

@@ -2,6 +2,11 @@
 name = "proto-tower-dtls"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "RapidRecast <hugh@rapidrecast.io>",
+]
+description = "Tower implementation of the DTLS protocol"
+license = "GPL-3"
 
 [features]
 data = []

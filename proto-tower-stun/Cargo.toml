@@ -2,6 +2,12 @@
 name = "proto-tower-stun"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "RapidRecast <hugh@rapidrecast.io>",
+]
+description = "Tower implementation of the STUN protocol"
+license = "GPL-3"
+
 
 [features]
 data = []

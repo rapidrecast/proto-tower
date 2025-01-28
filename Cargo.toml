@@ -20,6 +20,11 @@ members = [
 name = "proto-tower"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "RapidRecast <hugh@rapidrecast.io>",
+]
+description = "Tower implementation of various"
+license = "GPL-3"
 
 [features]
 all = [
