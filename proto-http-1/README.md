@@ -70,18 +70,18 @@ graph TD
     N1["This is the network primitive"]:::note -->|Note for| ARW
     N2["This is the service that would be implemented for the server"]:::note -->|Note for| SINNER
 %% style
-    classDef green1 fill: #00aa00, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef green2 fill: #33aa33, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef green3 fill: #55aa55, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef red1 fill: #aa0000, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef red2 fill: #aa3333, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef red3 fill: #aa5555, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef blue1 fill: #0000aa, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef blue2 fill: #3333aa, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef blue3 fill: #5555aa, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef pink1 fill: #aa00aa, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef pink2 fill: #aa33aa, stroke: #333, stroke-width: 2px, color: #ffffff;
-    classDef pink3 fill: #aa55aa, stroke: #333, stroke-width: 2px, color: #ffffff;
+    classDef green1 fill: #00aa00, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef green2 fill: #33aa33, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef green3 fill: #55aa55, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef red1 fill: #aa0000, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef red2 fill: #aa3333, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef red3 fill: #aa5555, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef blue1 fill: #0000aa, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef blue2 fill: #3333aa, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef blue3 fill: #5555aa, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef pink1 fill: #aa00aa, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef pink2 fill: #aa33aa, stroke: #333, stroke-width: 2px, color:#ffffff;
+    classDef pink3 fill: #aa55aa, stroke: #333, stroke-width: 2px, color:#ffffff;
     classDef grey fill: #ddd, stroke: #333, stroke-width: 2px;
     classDef structure fill: #0000aa, stroke: #333, stroke-width: 2px;
     classDef note fill: #ffeb3b, stroke: #ff9800, stroke-width: 2px, color: #000, font-style: italic, font-size: 12px;
