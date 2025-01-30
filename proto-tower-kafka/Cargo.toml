@@ -1,6 +1,6 @@
 [package]
 name = "proto-tower-kafka"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = [
     "RapidRecast <hugh@rapidrecast.io>",
@@ -14,3 +14,9 @@ client = ["data"]
 server = ["data"]
 
 [dependencies]
+tower = "0.5.2"
+tokio = { version = "1.43.0", features = ["io-util", "time", "sync"] }
+parser-helper = "0.1.0"
+proto-tower-util = { version = "0.1.5", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main" }
+async-trait = "0.1.85"
+kafka-protocol = "0.14.0"
