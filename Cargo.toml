@@ -102,7 +102,7 @@ proto-tower-http-1 = { version = "0.1.6", path = "proto-tower-http-1", optional 
 proto-tower-http-2 = { version = "0.1.5", path = "proto-tower-http-2", optional = true, features = ['data'] }
 proto-tower-http-3 = { version = "0.1.5", path = "proto-tower-http-3", optional = true, features = ['data'] }
 proto-tower-ice = { version = "0.1.5", path = "proto-tower-ice", optional = true, features = ['data'] }
-proto-tower-kafka = { version = "0.1.5", path = "proto-tower-kafka", optional = true, features = ['data'] }
+proto-tower-kafka = { version = "0.1.6", path = "proto-tower-kafka", optional = true, features = ['data'] }
 proto-tower-mqtt = { version = "0.1.5", path = "proto-tower-mqtt", optional = true, features = ['data'] }
 proto-tower-quic = { version = "0.1.5", path = "proto-tower-quic", optional = true, features = ['data'] }
 proto-tower-stun = { version = "0.1.5", path = "proto-tower-stun", optional = true, features = ['data'] }

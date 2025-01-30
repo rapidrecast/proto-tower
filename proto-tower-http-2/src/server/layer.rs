@@ -21,7 +21,7 @@ pub enum ProtoHttp2Error<Error: Debug> {
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
-pub struct ProtoH2CLayer<Svc>
+pub struct ProtoHttp2Layer<Svc>
 where
     Svc: Service<(Receiver<Http2Frame>, Sender<Http2Frame>), Response = ()> + Send + Clone,
 {
@@ -30,17 +30,17 @@ where
     inner: Svc,
 }
 
-impl<Svc> ProtoH2CLayer<Svc>
+impl<Svc> ProtoHttp2Layer<Svc>
 where
     Svc: Service<(Receiver<Http2Frame>, Sender<Http2Frame>), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the service
     pub fn new(config: ProtoHttp2Config, inner: Svc) -> Self {
-        ProtoH2CLayer { config, inner }
+        ProtoHttp2Layer { config, inner }
     }
 }
 
-impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoH2CLayer<Svc>
+impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoHttp2Layer<Svc>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,

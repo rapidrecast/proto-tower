@@ -17,6 +17,9 @@ server = ["data"]
 tower = "0.5.2"
 tokio = { version = "1.43.0", features = ["io-util", "time", "sync"] }
 parser-helper = "0.1.0"
-proto-tower-util = { version = "0.1.5", git = "https://github.com/rapidrecast/proto-tower.git", branch = "main" }
+proto-tower-util = { version = "0.1.6", path = "../proto-tower-util" }
 async-trait = "0.1.85"
 kafka-protocol = "0.14.0"
+
+[dev-dependencies]
+rdkafka = "0.37.0"
