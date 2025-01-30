@@ -1,5 +1,6 @@
 pub mod layer;
 pub mod make_layer;
+mod parser;
 mod test;
 
 #[derive(Clone, Debug)]

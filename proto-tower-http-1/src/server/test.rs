@@ -1,4 +1,4 @@
-use crate::data::{HTTP1ServerEvent, HTTTP1Response, Http1ServerResponseEvent};
+use crate::data::{HTTP1Response, HTTP1ServerEvent, Http1ServerResponseEvent};
 use crate::server::make_layer::ProtoHttp1ServerMakeLayer;
 use crate::server::ProtoHttp1ServerConfig;
 use http::header::{CONNECTION, UPGRADE};
@@ -186,33 +186,33 @@ where
             match req {
                 HTTP1ServerEvent::Request(req) => {
                     if req.path.path() == "/" {
-                        Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                        Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                             status: http::StatusCode::OK,
                             headers: Default::default(),
                             body: vec![],
                         }))
                     } else if req.path.path().starts_with("/path") {
-                        Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                        Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                             status: http::StatusCode::OK,
                             headers: Default::default(),
                             body: format!("Path was {}", req.path.path()).into_bytes(),
                         }))
                     } else if req.path.path().starts_with("/header") {
-                        Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                        Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                             status: http::StatusCode::OK,
                             headers: req.headers,
                             body: Vec::from("Received headers are returned"),
                         }))
                     } else if req.path.path().starts_with("/upgrade") {
                         if !req.headers.contains_key("Upgrade") || !req.headers.contains_key("Connection") {
-                            return Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                            return Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                                 status: http::StatusCode::BAD_REQUEST,
                                 headers: Default::default(),
                                 body: "Upgrade and Connection headers are required".into(),
                             }));
                         }
                         if req.headers.get("Upgrade").unwrap() != "plaintext-protocol" || req.headers.get("Connection").unwrap() != "Upgrade" {
-                            return Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                            return Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                                 status: http::StatusCode::BAD_REQUEST,
                                 headers: Default::default(),
                                 body: "Upgrade and Connection headers must be plaintext-protocol and Upgrade".into(),
@@ -221,13 +221,13 @@ where
                         let mut header_map = HeaderMap::new();
                         header_map.insert(UPGRADE, HeaderValue::from_static("plaintext-protocol"));
                         header_map.insert(CONNECTION, HeaderValue::from_static("Upgrade"));
-                        Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                        Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                             status: http::StatusCode::SWITCHING_PROTOCOLS,
                             headers: header_map,
                             body: vec![],
                         }))
                     } else {
-                        Ok(Http1ServerResponseEvent::Response(HTTTP1Response {
+                        Ok(Http1ServerResponseEvent::Response(HTTP1Response {
                             status: http::StatusCode::NOT_FOUND,
                             headers: Default::default(),
                             body: vec![],

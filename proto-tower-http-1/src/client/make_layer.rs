@@ -1,7 +1,7 @@
 use crate::client::layer::ProtoHttp1ClientLayer;
 use crate::client::ProtoHttp1ClientConfig;
 use std::marker::PhantomData;
-use tokio::io::DuplexStream;
+use tokio::io::{ReadHalf, SimplexStream, WriteHalf};
 use tower::{Layer, Service};
 
 /// This is the initializer for the layer.
@@ -9,7 +9,7 @@ use tower::{Layer, Service};
 /// the full lifetime.
 pub struct ProtoHttp1ClientMakeLayer<Svc>
 where
-    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
+    Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = ()> + Send + Clone,
 {
     config: ProtoHttp1ClientConfig,
     phantom_service: PhantomData<Svc>,
@@ -17,7 +17,7 @@ where
 
 impl<Svc> ProtoHttp1ClientMakeLayer<Svc>
 where
-    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
+    Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the layer
     pub fn new(config: ProtoHttp1ClientConfig) -> Self {
@@ -30,7 +30,7 @@ where
 
 impl<Svc> Layer<Svc> for ProtoHttp1ClientMakeLayer<Svc>
 where
-    Svc: Service<(DuplexStream, DuplexStream), Response = ()> + Send + Clone,
+    Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = ()> + Send + Clone,
 {
     type Service = ProtoHttp1ClientLayer<Svc>;
 

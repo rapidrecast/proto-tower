@@ -1,4 +1,6 @@
-use http::Uri;
+pub mod request;
+
+use crate::data::request::HTTP1Request;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// A service downstream from HTTP1ServerLayer will receive these structs
@@ -9,7 +11,7 @@ where
 {
     Request(HTTP1Request),
     /// A protocol upgrade including the original request and subsequent response
-    ProtocolUpgrade(HTTP1Request, HTTTP1Response, (READER, WRITER)),
+    ProtocolUpgrade(HTTP1Request, HTTP1Response, (READER, WRITER)),
 }
 
 /// When the client is called, it returns this value
@@ -19,25 +21,16 @@ where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
 {
-    Response(HTTTP1Response),
+    Response(HTTP1Response),
     /// If the response is a protocol upgrade, you will get this instead of a normal response
-    ProtocolUpgrade(HTTTP1Response, (Reader, Writer)),
-}
-
-/// An HTTP/1.1 request
-#[derive(Debug, Clone)]
-pub struct HTTP1Request {
-    pub path: Uri,
-    pub method: http::Method,
-    pub headers: http::HeaderMap,
-    pub body: Vec<u8>,
+    ProtocolUpgrade(HTTP1Response, (Reader, Writer)),
 }
 
 pub enum Http1ServerResponseEvent {
     /// Use this for protocol upgrades
     NoResponseExpected,
     /// Use this for request responses
-    Response(HTTTP1Response),
+    Response(HTTP1Response),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -53,13 +46,13 @@ pub enum ProtoHttp1LayerError<SvcError> {
 
 /// An HTTP/1.1 response
 #[derive(Debug, Eq, PartialEq)]
-pub struct HTTTP1Response {
+pub struct HTTP1Response {
     pub status: http::StatusCode,
     pub headers: http::HeaderMap,
     pub body: Vec<u8>,
 }
 
-impl HTTTP1Response {
+impl HTTP1Response {
     pub async fn write_onto<WRITER: AsyncWriteExt + Send + Unpin + 'static>(&self, writer: &mut WRITER) {
         // RESPONSE
         const VERSION: &[u8] = "HTTP/1.1".as_bytes();

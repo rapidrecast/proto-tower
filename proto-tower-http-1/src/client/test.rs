@@ -1,7 +1,8 @@
 use crate::client::make_layer::ProtoHttp1ClientMakeLayer;
 use crate::client::ProtoHttp1ClientConfig;
-use crate::data::{HTTP1ClientResponse, HTTP1Request, HTTTP1Response};
-use http::StatusCode;
+use crate::data::request::HTTP1Request;
+use crate::data::HTTP1ClientResponse;
+use http::{HeaderMap, StatusCode};
 use proto_tower_util::{AsyncReadToBuf, ZeroReadBehaviour};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -31,14 +32,11 @@ async fn test_client() {
         HTTP1ClientResponse::Response(res) => res,
         HTTP1ClientResponse::ProtocolUpgrade(_, _) => panic!(),
     };
-    assert_eq!(
-        res,
-        HTTTP1Response {
-            status: StatusCode::OK,
-            headers: Default::default(),
-            body: vec![],
-        }
-    );
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Length", "37".parse().unwrap());
+    assert_eq!(res.status, StatusCode::OK);
+    assert_eq!(res.headers, headers);
+    assert_eq!(String::from_utf8(res.body).unwrap(), "GET / HTTP/1.1\r\nContent-Length: 0\r\n\r\n");
 }
 
 async fn basic_server<Reader: AsyncReadExt + Send + Unpin + 'static, Writer: AsyncWriteExt + Send + Unpin + 'static>(
@@ -46,7 +44,10 @@ async fn basic_server<Reader: AsyncReadExt + Send + Unpin + 'static, Writer: Asy
 ) -> Result<(), ()> {
     let reader = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
     let data = reader.read_with_timeout(&mut read, Duration::from_millis(100), None).await;
-    assert_eq!(data, vec![]);
-    write.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n").await.unwrap();
+    write
+        .write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", data.len()).as_bytes())
+        .await
+        .unwrap();
+    write.write_all(&data).await.unwrap();
     Ok(())
 }

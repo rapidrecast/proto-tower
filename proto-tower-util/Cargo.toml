@@ -1,6 +1,6 @@
 [package]
 name = "proto-tower-util"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = [
     "RapidRecast <hugh@rapidrecast.io>",
@@ -11,6 +11,7 @@ license = "GPL-3.0-only"
 
 [dependencies]
 tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt"] }
+async-trait = "0.1.85"
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }

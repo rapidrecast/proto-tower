@@ -1,9 +1,12 @@
 //! Proto-tower-util is a collection of utilities that are used across the proto-tower project.
 
+mod write_to;
+pub use write_to::WriteTo;
+
 use std::cmp::min;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::Duration;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
 pub enum ZeroReadBehaviour {
     TickAndYield,
@@ -26,6 +29,12 @@ impl AsyncReadToBuf<1024> {
 impl<const S: usize> AsyncReadToBuf<S> {
     pub const fn new(zero_read_behaviour: ZeroReadBehaviour) -> Self {
         AsyncReadToBuf::<S> { zero_read_behaviour }
+    }
+
+    pub async fn read_until<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut BufReader<READ>, byte: u8) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(S);
+        reader.read_until(byte, &mut buf).await.unwrap();
+        buf
     }
 
     pub async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut READ, timeout: Duration, desired_size: Option<usize>) -> Vec<u8> {
