@@ -1,6 +1,7 @@
 use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
 use crate::server::parser::parse_kafka_request;
 use crate::server::KafkaProtoServerConfig;
+use bytes::BytesMut;
 use proto_tower_util::{AsyncReadToBuf, WriteTo, ZeroReadBehaviour};
 use std::future::Future;
 use std::pin::Pin;
@@ -75,6 +76,7 @@ where
                                 return Err(KafkaProtocolError::InternalServiceClosed);
                             }
                             Some(resp) => {
+                                eprintln!("Sending response: {:?}", resp);
                                 resp.write_to(&mut writer).await?;
                             }
                         }
@@ -85,15 +87,19 @@ where
                             return Err(KafkaProtocolError::Timeout);
                         }
                         data.extend_from_slice(&r);
-                        let res = parse_kafka_request(&data);
+                        let mut mut_buf = BytesMut::new();
+                        mut_buf.extend_from_slice(&data);
+                        let res = parse_kafka_request(&mut mut_buf);
                         match res {
-                            Ok((resp, sz)) => {
+                            Ok(resp) => {
+                                let sz = data.len()-mut_buf.len();
                                 data.drain(..sz);
                                 if let Err(e) = write.send(resp).await {
                                     return Err(KafkaProtocolError::InternalServiceClosed);
                                 }
                             }
-                            Err(_) => {
+                            Err(e) => {
+                                eprintln!("Error parsing request: {:?}", e);
                                 // No-op, not enough data. Assuming parsing is valid.
                             }
                         }

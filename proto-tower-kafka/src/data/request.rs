@@ -15,6 +15,7 @@ use kafka_protocol::messages::{
     WriteTxnMarkersRequest,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum KafkaRequest {
     ProduceRequest(ProduceRequest),
     FetchRequest(FetchRequest),
@@ -23,7 +24,7 @@ pub enum KafkaRequest {
     LeaderAndIsrRequest(LeaderAndIsrRequest),
     StopReplicaRequest(StopReplicaRequest),
     UpdateMetadataRequest(UpdateMetadataRequest),
-    ControlShutdownRequest(ControlledShutdownRequest),
+    ControlledShutdownRequest(ControlledShutdownRequest),
     OffsetCommitRequest(OffsetCommitRequest),
     OffsetFetchRequest(OffsetFetchRequest),
     FindCoordinatorRequest(FindCoordinatorRequest),

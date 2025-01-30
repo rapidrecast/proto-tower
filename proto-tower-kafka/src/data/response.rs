@@ -1,22 +1,9 @@
 use crate::data::KafkaProtocolError;
 use async_trait::async_trait;
-use kafka_protocol::messages::{
-    AddOffsetsToTxnResponse, AddPartitionsToTxnResponse, AllocateProducerIdsResponse, AlterClientQuotasResponse, AlterConfigsResponse,
-    AlterPartitionReassignmentsResponse, AlterPartitionResponse, AlterReplicaLogDirsResponse, AlterUserScramCredentialsResponse, ApiVersionsResponse,
-    AssignReplicasToDirsResponse, BeginQuorumEpochResponse, BrokerHeartbeatResponse, BrokerRegistrationResponse, ConsumerGroupDescribeResponse,
-    ConsumerGroupHeartbeatResponse, ControlledShutdownResponse, ControllerRegistrationResponse, CreateAclsResponse, CreateDelegationTokenResponse,
-    CreatePartitionsResponse, CreateTopicsResponse, DeleteAclsResponse, DeleteGroupsResponse, DeleteRecordsResponse, DeleteTopicsResponse, DescribeAclsResponse,
-    DescribeClientQuotasResponse, DescribeClusterResponse, DescribeConfigsResponse, DescribeDelegationTokenResponse, DescribeGroupsResponse, DescribeLogDirsResponse,
-    DescribeProducersResponse, DescribeQuorumResponse, DescribeTopicPartitionsResponse, DescribeTransactionsResponse, DescribeUserScramCredentialsResponse,
-    ElectLeadersResponse, EndQuorumEpochResponse, EndTxnResponse, EnvelopeResponse, ExpireDelegationTokenResponse, FetchResponse, FetchSnapshotResponse,
-    FindCoordinatorResponse, GetTelemetrySubscriptionsResponse, HeartbeatResponse, IncrementalAlterConfigsResponse, InitProducerIdResponse, JoinGroupResponse,
-    LeaderAndIsrResponse, LeaveGroupResponse, ListClientMetricsResourcesResponse, ListGroupsResponse, ListOffsetsResponse, ListPartitionReassignmentsResponse,
-    ListTransactionsResponse, MetadataResponse, OffsetCommitResponse, OffsetDeleteResponse, OffsetFetchResponse, OffsetForLeaderEpochResponse, ProduceResponse,
-    PushTelemetryResponse, RenewDelegationTokenResponse, SaslAuthenticateResponse, SaslHandshakeResponse, StopReplicaResponse, SyncGroupResponse,
-    TxnOffsetCommitResponse, UnregisterBrokerResponse, UpdateFeaturesResponse, UpdateMetadataResponse, VoteResponse, WriteTxnMarkersResponse,
-};
+use kafka_protocol::messages::*;
 use std::fmt::Debug;
 
+#[derive(Debug)]
 pub enum KafkaResponse {
     ProduceResponse(ProduceResponse),
     FetchResponse(FetchResponse),
