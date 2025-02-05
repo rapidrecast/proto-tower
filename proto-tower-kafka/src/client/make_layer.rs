@@ -4,24 +4,32 @@ use std::fmt::Debug;
 use tokio::io::{ReadHalf, SimplexStream, WriteHalf};
 use tower::Layer;
 
-pub struct ProtoKafkaClientMakeLayer {
+pub struct ProtoKafkaClientMakeLayer<RNG>
+where
+    RNG: rand::TryRngCore + Send + Clone + 'static,
+{
     pub config: KafkaProtoClientConfig,
+    pub rng: RNG,
 }
 
-impl ProtoKafkaClientMakeLayer {
-    pub fn new(config: KafkaProtoClientConfig) -> Self {
-        ProtoKafkaClientMakeLayer { config }
+impl<RNG> ProtoKafkaClientMakeLayer<RNG>
+where
+    RNG: rand::TryRngCore + Send + Clone + 'static,
+{
+    pub fn new(rng: RNG, config: KafkaProtoClientConfig) -> Self {
+        ProtoKafkaClientMakeLayer { config, rng }
     }
 }
 
-impl<Service, E> Layer<Service> for ProtoKafkaClientMakeLayer
+impl<Service, E, RNG> Layer<Service> for ProtoKafkaClientMakeLayer<RNG>
 where
     Service: tower::Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
+    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
-    type Service = ProtoKafkaClientLayer<Service, E>;
+    type Service = ProtoKafkaClientLayer<Service, E, RNG>;
 
     fn layer(&self, inner: Service) -> Self::Service {
-        ProtoKafkaClientLayer::new(inner, self.config.clone())
+        ProtoKafkaClientLayer::new(inner, self.rng.clone(), self.config.clone())
     }
 }

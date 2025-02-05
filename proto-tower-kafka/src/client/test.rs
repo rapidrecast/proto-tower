@@ -34,10 +34,13 @@ async fn test_client_raw() {
     // assert_eq!(la_data, [0x01, 0x00, 0x00, 0x3f]);
     let test_net = TestIoService::new(Vec::from(API_VERSIONS_RESPONSE_RAW));
     let mut service = ServiceBuilder::default()
-        .layer(ProtoKafkaClientMakeLayer::new(KafkaProtoClientConfig {
-            timeout: Default::default(),
-            client_id: None,
-        }))
+        .layer(ProtoKafkaClientMakeLayer::new(
+            rand::rngs::OsRng::default(),
+            KafkaProtoClientConfig {
+                timeout: Default::default(),
+                client_id: None,
+            },
+        ))
         .service(test_net.clone());
 
     let ((rx_svc, sx_svc), (mut rx, sx)) = proto_tower_util::sx_rx_chans();
@@ -50,7 +53,7 @@ async fn test_client_raw() {
     .await
     .unwrap();
     let resp = rx.recv().await.unwrap();
-    // drop(rx);
-    // drop(sx);
-    // task.await.unwrap().unwrap();
+    drop(rx);
+    drop(sx);
+    task.await.unwrap().unwrap();
 }

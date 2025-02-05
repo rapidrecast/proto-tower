@@ -6,16 +6,20 @@ use crate::server::test::MockKafkaService;
 use crate::server::KafkaProtoServerConfig;
 use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse};
 use kafka_protocol::protocol::StrBytes;
+use rand::rngs::OsRng;
 use std::time::Duration;
 use tower::{Service, ServiceBuilder};
 
 #[tokio::test]
 async fn test_client() {
     let mut client = ServiceBuilder::new()
-        .layer(ProtoKafkaClientMakeLayer::new(KafkaProtoClientConfig {
-            timeout: Duration::from_millis(200),
-            client_id: None,
-        }))
+        .layer(ProtoKafkaClientMakeLayer::new(
+            OsRng::default(),
+            KafkaProtoClientConfig {
+                timeout: Duration::from_millis(200),
+                client_id: None,
+            },
+        ))
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(200),
         }))
@@ -34,27 +38,9 @@ async fn test_client() {
         .await
         .unwrap();
     // Set some value that is incorrect but we will change
-    let mut res: KafkaResponse = KafkaResponse::ApiVersionsResponse(Default::default());
-    tokio::select! {
-        result = read.recv() => {
-            match result {
-                None => {
-                    // It looks like the task failed
-                    task.await.unwrap().unwrap();
-                    panic!("The receiver was closed but the task succeeded?")
-                }
-                Some(r) => {
-                    res = r;
-                }
-            }
-        }
-        _ = tokio::time::sleep(tokio::time::Duration::from_secs(2)) => {
-            if task.is_finished() {
-                task.await.unwrap().unwrap();
-            }
-            panic!("Timeout")
-        }
-    }
+    let res = tokio::time::timeout(Duration::from_secs(2), read.recv()).await.unwrap();
+    let res = res.unwrap();
+
     drop(write);
     drop(read);
     assert_eq!(res, KafkaResponse::ApiVersionsResponse(Default::default()));

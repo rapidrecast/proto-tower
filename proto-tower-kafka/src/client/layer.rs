@@ -6,41 +6,48 @@ use kafka_protocol::protocol::buf::ByteBuf;
 use kafka_protocol::protocol::Decodable;
 use paste::paste;
 use proto_tower_util::WriteTo;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncReadExt, ReadHalf, SimplexStream, WriteHalf};
 use tokio::select;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::RwLock;
 use tower::Service;
 
 #[derive(Clone)]
-pub struct ProtoKafkaClientLayer<Svc, E>
+pub struct ProtoKafkaClientLayer<Svc, E, RNG>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
+    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
     inner: Svc,
     config: KafkaProtoClientConfig,
+    rng: RNG,
 }
 
-impl<Svc, E> ProtoKafkaClientLayer<Svc, E>
+impl<Svc, E, RNG> ProtoKafkaClientLayer<Svc, E, RNG>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
+    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
-    pub fn new(inner: Svc, config: KafkaProtoClientConfig) -> Self {
-        ProtoKafkaClientLayer { inner, config }
+    pub fn new(inner: Svc, rng: RNG, config: KafkaProtoClientConfig) -> Self {
+        ProtoKafkaClientLayer { inner, rng, config }
     }
 }
 
-impl<Svc, E, SvcFut> Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for ProtoKafkaClientLayer<Svc, E>
+impl<Svc, E, SvcFut, RNG> Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for ProtoKafkaClientLayer<Svc, E, RNG>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E, Future = SvcFut> + Send + Clone + 'static,
     SvcFut: Future<Output = Result<(), E>> + Send + 'static,
     E: Debug + Send + 'static,
+    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
     type Response = ();
     type Error = KafkaProtocolError<E>;
@@ -53,7 +60,10 @@ where
     fn call(&mut self, (mut rx_chan, sx_chan): (Receiver<KafkaRequest>, Sender<KafkaResponse>)) -> Self::Future {
         let mut inner = self.inner.clone();
         let config = self.config.clone();
+        let mut random = self.rng.clone();
         Box::pin(async move {
+            // Tracked requests
+            let tracked_requests = Arc::new(RwLock::new(BTreeMap::<i32, ApiKey>::new()));
             // Create channel
             let (svc_read, mut write) = tokio::io::simplex(1024);
             let (mut read, svc_write) = tokio::io::simplex(1024);
@@ -71,7 +81,13 @@ where
                                 return Ok(())
                             }
                             Some(req) => {
-                                let correlation_id = 123;
+                                // Generate correlation_id
+                                let mut req_lock = tracked_requests.write().await;
+                                let mut correlation_id: i32 = rand_i32(&mut random);
+                                while req_lock.contains_key(&correlation_id) {
+                                    correlation_id = rand_i32(&mut random);
+                                }
+                                req_lock.insert(correlation_id, req.api_key());
                                 req.into_full(3, correlation_id, config.client_id.clone()).write_to(&mut write).await?;
                             }
                         }
@@ -84,7 +100,7 @@ where
                                     eprintln!("Received size 0, breaking");
                                     break;
                                 }
-                                let resp = dbg!(parse_response(&mut buf_mut).await)?;
+                                let resp = parse_response(&mut buf_mut, &tracked_requests).await?;
                                 if let Some(resp) = resp {
                                     eprintln!("Client read Response: {:?}", resp);
                                     if let Err(_) = sx_chan.send(resp).await {
@@ -116,7 +132,13 @@ where
     }
 }
 
-async fn parse_response<E: Debug>(buf_mut: &mut BytesMut) -> Result<Option<KafkaResponse>, KafkaProtocolError<E>> {
+fn rand_i32<RNG: rand::TryRngCore>(rng: &mut RNG) -> i32 {
+    let mut bytes = [0u8; 4];
+    rng.try_fill_bytes(&mut bytes).unwrap();
+    i32::from_be_bytes(bytes)
+}
+
+async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &Arc<RwLock<BTreeMap<i32, ApiKey>>>) -> Result<Option<KafkaResponse>, KafkaProtocolError<E>> {
     let sz = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     if buf_mut.len() < sz as usize + 4 {
         eprintln!("Not enough data to read (expecting {} but have {})", sz, buf_mut.len() + 4);
@@ -124,8 +146,14 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut) -> Result<Option<Kafka
     }
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     let version = Buf::try_get_i16(&mut buf_mut.peek_bytes(2..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading version"))?;
-    let header = RequestHeader::decode(buf_mut, version).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading header"))?;
-    let api = ApiKey::try_from(header.request_api_key).map_err(|_| KafkaProtocolError::UnhandledImplementation("Invalid API Key"))?;
+    eprintln!("Reading response with version: {}", version);
+    let header = ResponseHeader::decode(buf_mut, version).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading header"))?;
+    let mut req_lock = tracked_requests.write().await;
+    let api = req_lock.remove(&header.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
+        "Encountered correlation id in response that isnt tracked on client",
+    ))?;
+    drop(req_lock);
+    eprintln!("Decoding response for API: {:?}", api);
     let resp: KafkaResponse = parse_response_internal(api, buf_mut, version)?;
     Ok(Some(resp))
 }
