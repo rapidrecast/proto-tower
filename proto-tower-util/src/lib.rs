@@ -1,8 +1,10 @@
 //! Proto-tower-util is a collection of utilities that are used across the proto-tower project.
 
+mod chan;
 pub mod debug;
 mod write_to;
 
+pub use chan::sx_rx_chans;
 pub use write_to::WriteTo;
 
 use std::cmp::min;

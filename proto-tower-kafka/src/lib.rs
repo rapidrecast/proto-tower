@@ -4,3 +4,6 @@ pub mod client;
 pub mod data;
 #[cfg(feature = "server")]
 pub mod server;
+#[cfg(test)]
+#[cfg(all(feature = "client", feature = "server"))]
+mod test;

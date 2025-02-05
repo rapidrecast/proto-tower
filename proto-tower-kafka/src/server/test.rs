@@ -1,6 +1,11 @@
 use crate::data::{KafkaRequest, KafkaResponse};
 use crate::server::make_layer::ProtoKafkaServerMakeLayer;
 use crate::server::KafkaProtoServerConfig;
+use bytes::BytesMut;
+use kafka_protocol::messages::ApiVersionsResponse;
+use kafka_protocol::protocol::Decodable;
+use proto_tower_util::debug::debug_hex;
+use proto_tower_util::{AsyncReadToBuf, ZeroReadBehaviour};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::Timeout;
 use std::future::Future;
@@ -8,6 +13,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 use std::time::Duration;
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
@@ -16,20 +22,20 @@ use tower::{Service, ServiceBuilder};
 
 #[tokio::test]
 async fn test_rdkafka() {
-    let (task, port, kafka_service) = bind_and_serve(None).await;
+    let (task, port, kafka_service) = bind_and_serve(Some(39092)).await;
+    // let port = 29092;
     let producer: FutureProducer = rdkafka::config::ClientConfig::new()
         .set("bootstrap.servers", format!("localhost:{port}"))
         .set("message.timeout.ms", "5000")
         .create()
         .unwrap();
 
-    producer
+    let client_res = producer
         .send(
             FutureRecord::<str, str>::to("my-topic").key("some key").payload("hello"),
             Timeout::After(Duration::from_secs(1)),
         )
-        .await
-        .unwrap();
+        .await;
 
     task.abort();
 
@@ -37,13 +43,45 @@ async fn test_rdkafka() {
     assert_eq!(*requests, vec![]);
     let responses = kafka_service.responses.lock().await;
     assert_eq!(responses.len(), 0);
+    client_res.unwrap();
+}
+
+#[tokio::test]
+async fn test_raw() {
+    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]);
+    let mut kafka_service = ServiceBuilder::new()
+        .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
+            timeout: Duration::from_millis(2000),
+        }))
+        .service(mock_kafka_service.clone());
+    let (read, write_svc) = tokio::io::duplex(1024);
+    let (read_svc, mut write) = tokio::io::split(read);
+    let (mut read, write_svc) = tokio::io::split(write_svc);
+    let task = tokio::spawn(async move {
+        kafka_service.call((read_svc, write_svc)).await.unwrap();
+    });
+    let payload = [
+        0x00u8, 0x00, 0x00, 0x24, 0x00, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x07, 0x72, 0x64, 0x6b, 0x61, 0x66, 0x6b, 0x61, 0x00, 0x0b, 0x6c, 0x69, 0x62,
+        0x72, 0x64, 0x6b, 0x61, 0x66, 0x6b, 0x61, 0x06, 0x32, 0x2e, 0x33, 0x2e, 0x30, 0x00,
+    ];
+    write.write_all(&payload).await.unwrap();
+    let reader = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+    let mut buf = reader.read_with_timeout(&mut read, Duration::from_secs(1), None).await;
+    assert!(!buf.is_empty());
+    let sz = buf.drain(0..4).map(|b| b as usize).fold(0, |acc, x| acc * 256 + x);
+    assert_eq!(buf.len(), sz);
+    let mut byte_buf = BytesMut::new();
+    byte_buf.extend_from_slice(&buf);
+    eprintln!("Decoding:\n{}", debug_hex(&byte_buf));
+    let res = ApiVersionsResponse::decode(&mut byte_buf, 0).unwrap();
+    assert_eq!(&buf, &[0x00, 0xff]);
 }
 
 async fn bind_and_serve(port: Option<u16>) -> (JoinHandle<()>, u16, MockKafkaService) {
     let port = port.unwrap_or_default();
     let listener = TcpListener::bind(("0.0.0.0", port)).await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let kafka_service = MockKafkaService::new(vec![]);
+    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]);
     let inner_kafka_service = kafka_service.clone();
     let task = tokio::spawn(async move {
         let (stream, _addr) = listener.accept().await.unwrap();
@@ -79,7 +117,7 @@ impl Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for MockKafkaServi
 }
 
 impl MockKafkaService {
-    fn new(responses: Vec<KafkaResponse>) -> Self {
+    pub fn new(responses: Vec<KafkaResponse>) -> Self {
         MockKafkaService {
             requests: Arc::new(Mutex::new(Vec::new())),
             responses: Arc::new(Mutex::new(responses)),

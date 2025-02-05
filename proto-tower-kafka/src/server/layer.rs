@@ -2,6 +2,7 @@ use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
 use crate::server::parser::parse_kafka_request;
 use crate::server::KafkaProtoServerConfig;
 use bytes::BytesMut;
+use proto_tower_util::debug::debug_hex;
 use proto_tower_util::{AsyncReadToBuf, WriteTo, ZeroReadBehaviour};
 use std::future::Future;
 use std::pin::Pin;
@@ -13,6 +14,7 @@ use tower::Service;
 /// A service to process HTTP/1.1 requests
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
+#[derive(Debug, Clone)]
 pub struct ProtoKafkaServerLayer<Svc>
 where
     Svc: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = ()> + Send + Clone,
@@ -87,20 +89,29 @@ where
                             return Err(KafkaProtocolError::Timeout);
                         }
                         data.extend_from_slice(&r);
-                        let mut mut_buf = BytesMut::new();
-                        mut_buf.extend_from_slice(&data);
-                        let res = parse_kafka_request(&mut mut_buf);
-                        match res {
-                            Ok(resp) => {
-                                let sz = data.len()-mut_buf.len();
-                                data.drain(..sz);
-                                if let Err(e) = write.send(resp).await {
-                                    return Err(KafkaProtocolError::InternalServiceClosed);
+                        eprintln!("Before check\n{}", debug_hex(&data));
+                        if let Some(mut mut_buf) = check_valid_packet(&mut data) {
+                            eprintln!("After check\n{}", debug_hex(&mut_buf));
+                            let res = parse_kafka_request(&mut mut_buf);
+                            match res {
+                                Ready(resp) => {
+                                        match resp {
+                                            Ok(resp) => {
+                                                // let sz = data.len()-mut_buf.len();
+                                                // data.drain(..sz);
+                                                if let Err(e) = write.send(resp.clone()).await {
+                                                    return Err(KafkaProtocolError::InternalServiceClosed);
+                                                }
+                                            }
+                                            Err(e) => {
+                                                eprintln!("Error parsing request: {:?}", e);
+                                                // No-op, not enough data. Assuming parsing is valid.
+                                            }
+                                        }
+                                    }
+                                Pending => {
+                                        eprintln!("Pending");
                                 }
-                            }
-                            Err(e) => {
-                                eprintln!("Error parsing request: {:?}", e);
-                                // No-op, not enough data. Assuming parsing is valid.
                             }
                         }
                     }
@@ -116,4 +127,19 @@ where
             }
         })
     }
+}
+
+fn check_valid_packet(buff: &mut Vec<u8>) -> Option<BytesMut> {
+    let sz = buff.get(0..4)?;
+    let sz = i32::from_be_bytes(sz.try_into().unwrap()) as usize;
+    if buff.len() < sz + 4 {
+        return None;
+    }
+    let sz_raw = buff.drain(..4);
+    let sz_raw = sz_raw.collect::<Vec<u8>>();
+    let ret = buff.drain(..sz);
+    let mut mut_buf = BytesMut::new();
+    mut_buf.extend_from_slice(&sz_raw);
+    mut_buf.extend_from_slice(&ret.collect::<Vec<u8>>());
+    Some(mut_buf)
 }

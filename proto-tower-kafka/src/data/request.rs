@@ -15,7 +15,7 @@ use kafka_protocol::messages::{
     WriteTxnMarkersRequest,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum KafkaRequest {
     ProduceRequest(ProduceRequest),
     FetchRequest(FetchRequest),

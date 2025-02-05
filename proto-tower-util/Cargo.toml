@@ -10,7 +10,7 @@ license = "GPL-3.0-only"
 
 
 [dependencies]
-tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt"] }
+tokio = { version = "1.43.0", features = ["io-util", "time", "macros", "rt", "sync"] }
 async-trait = "0.1.85"
 
 [dev-dependencies]
