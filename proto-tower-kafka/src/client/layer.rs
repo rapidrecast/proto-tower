@@ -10,13 +10,11 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncReadExt, ReadHalf, SimplexStream, WriteHalf};
 use tokio::select;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
-use tokio::sync::RwLock;
 use tower::Service;
 
 #[derive(Clone)]
@@ -63,7 +61,7 @@ where
         let mut random = self.rng.clone();
         Box::pin(async move {
             // Tracked requests
-            let tracked_requests = Arc::new(RwLock::new(BTreeMap::<i32, ApiKey>::new()));
+            let mut tracked_requests = BTreeMap::<i32, (ApiKey, i16)>::new();
             // Create channel
             let (svc_read, mut write) = tokio::io::simplex(1024);
             let (mut read, svc_write) = tokio::io::simplex(1024);
@@ -82,13 +80,13 @@ where
                             }
                             Some(req) => {
                                 // Generate correlation_id
-                                let mut req_lock = tracked_requests.write().await;
                                 let mut correlation_id: i32 = rand_i32(&mut random);
-                                while req_lock.contains_key(&correlation_id) {
+                                while tracked_requests.contains_key(&correlation_id) {
                                     correlation_id = rand_i32(&mut random);
                                 }
-                                req_lock.insert(correlation_id, req.api_key());
-                                req.into_full(3, correlation_id, config.client_id.clone()).write_to(&mut write).await?;
+                                let version = 3;
+                                tracked_requests.insert(correlation_id, (req.api_key(), version));
+                                req.into_full(version, correlation_id, config.client_id.clone()).write_to(&mut write).await?;
                             }
                         }
                     }
@@ -100,7 +98,7 @@ where
                                     eprintln!("Received size 0, breaking");
                                     break;
                                 }
-                                let resp = parse_response(&mut buf_mut, &tracked_requests).await?;
+                                let resp = parse_response(&mut buf_mut, &mut tracked_requests).await?;
                                 if let Some(resp) = resp {
                                     eprintln!("Client read Response: {:?}", resp);
                                     if let Err(_) = sx_chan.send(resp).await {
@@ -138,22 +136,19 @@ fn rand_i32<RNG: rand::TryRngCore>(rng: &mut RNG) -> i32 {
     i32::from_be_bytes(bytes)
 }
 
-async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &Arc<RwLock<BTreeMap<i32, ApiKey>>>) -> Result<Option<KafkaResponse>, KafkaProtocolError<E>> {
+async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut BTreeMap<i32, (ApiKey, i16)>) -> Result<Option<KafkaResponse>, KafkaProtocolError<E>> {
     let sz = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     if buf_mut.len() < sz as usize + 4 {
         eprintln!("Not enough data to read (expecting {} but have {})", sz, buf_mut.len() + 4);
         return Ok(None);
     }
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
-    let version = Buf::try_get_i16(&mut buf_mut.peek_bytes(2..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading version"))?;
-    eprintln!("Reading response with version: {}", version);
-    let header = ResponseHeader::decode(buf_mut, version).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading header"))?;
-    let mut req_lock = tracked_requests.write().await;
-    let api = req_lock.remove(&header.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
-        "Encountered correlation id in response that isnt tracked on client",
+    const HEADER_RESPONSE_VERSION: i16 = 1;
+    let header = ResponseHeader::decode(buf_mut, HEADER_RESPONSE_VERSION).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading header"))?;
+    let (api, version) = tracked_requests.remove(&header.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
+        "Encountered correlation id in response that isn't tracked on client",
     ))?;
-    drop(req_lock);
-    eprintln!("Decoding response for API: {:?}", api);
+    eprintln!("Decoding response for API: {:?} with version {}", api, version);
     let resp: KafkaResponse = parse_response_internal(api, buf_mut, version)?;
     Ok(Some(resp))
 }

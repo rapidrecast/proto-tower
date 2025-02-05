@@ -52,8 +52,9 @@ async fn test_client_raw() {
     )))
     .await
     .unwrap();
-    let resp = rx.recv().await.unwrap();
-    drop(rx);
+    let resp = rx.recv().await;
     drop(sx);
+    drop(rx);
     task.await.unwrap().unwrap();
+    let resp = resp.unwrap();
 }
