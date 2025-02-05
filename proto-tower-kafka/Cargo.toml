@@ -22,6 +22,7 @@ async-trait = "0.1.85"
 bytes = "1.9.0"
 #kafka-protocol = { version = "0.14.0" }
 kafka-protocol = { git = "https://github.com/phughk/kafka-protocol-rs", branch = "107-conflicting-implicit-trait-impl" }
+paste = "1.0.15"
 
 [dev-dependencies]
 rdkafka = "0.37.0"
