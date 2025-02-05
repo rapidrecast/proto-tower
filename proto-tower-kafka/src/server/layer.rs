@@ -64,7 +64,7 @@ where
 
             // Start the downstream call
             let (svc_write, mut read) = tokio::sync::mpsc::channel::<KafkaResponse>(1024);
-            let (mut write, svc_read) = tokio::sync::mpsc::channel::<KafkaRequest>(1024);
+            let (write, svc_read) = tokio::sync::mpsc::channel::<KafkaRequest>(1024);
             let svc_fut = tokio::spawn(service.call((svc_read, svc_write)));
 
             let mut data = Vec::with_capacity(1024);
@@ -99,11 +99,12 @@ where
                                             Ok(resp) => {
                                                 // let sz = data.len()-mut_buf.len();
                                                 // data.drain(..sz);
-                                                if let Err(e) = write.send(resp.clone()).await {
+                                                if let Err(_) = write.send(resp.clone()).await {
                                                     return Err(KafkaProtocolError::InternalServiceClosed);
                                                 }
                                             }
                                             Err(e) => {
+                                                eprintln!("Buffer:\n{}", debug_hex(&mut_buf));
                                                 eprintln!("Error parsing request: {:?}", e);
                                                 // No-op, not enough data. Assuming parsing is valid.
                                             }

@@ -1,13 +1,16 @@
 use crate::client::layer::ProtoKafkaClientLayer;
+use crate::client::KafkaProtoClientConfig;
 use std::fmt::Debug;
 use tokio::io::{ReadHalf, SimplexStream, WriteHalf};
 use tower::Layer;
 
-pub struct ProtoKafkaClientMakeLayer {}
+pub struct ProtoKafkaClientMakeLayer {
+    pub config: KafkaProtoClientConfig,
+}
 
 impl ProtoKafkaClientMakeLayer {
-    pub fn new() -> Self {
-        ProtoKafkaClientMakeLayer {}
+    pub fn new(config: KafkaProtoClientConfig) -> Self {
+        ProtoKafkaClientMakeLayer { config }
     }
 }
 
@@ -19,6 +22,6 @@ where
     type Service = ProtoKafkaClientLayer<Service, E>;
 
     fn layer(&self, inner: Service) -> Self::Service {
-        ProtoKafkaClientLayer::new(inner)
+        ProtoKafkaClientLayer::new(inner, self.config.clone())
     }
 }

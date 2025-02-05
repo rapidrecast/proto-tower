@@ -2,9 +2,11 @@
 
 mod chan;
 pub mod debug;
+mod test_io_service;
 mod write_to;
 
 pub use chan::sx_rx_chans;
+pub use test_io_service::TestIoService;
 pub use write_to::WriteTo;
 
 use std::cmp::min;

@@ -48,7 +48,7 @@ async fn test_rdkafka() {
 
 #[tokio::test]
 async fn test_raw() {
-    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]);
+    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(Box::new(ApiVersionsResponse::default()))]);
     let mut kafka_service = ServiceBuilder::new()
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(2000),
@@ -69,19 +69,21 @@ async fn test_raw() {
     let mut buf = reader.read_with_timeout(&mut read, Duration::from_secs(1), None).await;
     assert!(!buf.is_empty());
     let sz = buf.drain(0..4).map(|b| b as usize).fold(0, |acc, x| acc * 256 + x);
+    // let sz = buf[0..4].iter().map(|b| *b as usize).fold(0, |acc, x| acc * 256 + x);
     assert_eq!(buf.len(), sz);
     let mut byte_buf = BytesMut::new();
     byte_buf.extend_from_slice(&buf);
     eprintln!("Decoding:\n{}", debug_hex(&byte_buf));
-    let res = ApiVersionsResponse::decode(&mut byte_buf, 0).unwrap();
+    let _res = ApiVersionsResponse::decode(&mut byte_buf, 3).unwrap();
     assert_eq!(&buf, &[0x00, 0xff]);
+    task.await.unwrap();
 }
 
 async fn bind_and_serve(port: Option<u16>) -> (JoinHandle<()>, u16, MockKafkaService) {
     let port = port.unwrap_or_default();
     let listener = TcpListener::bind(("0.0.0.0", port)).await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]);
+    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(Box::new(ApiVersionsResponse::default()))]);
     let inner_kafka_service = kafka_service.clone();
     let task = tokio::spawn(async move {
         let (stream, _addr) = listener.accept().await.unwrap();
@@ -107,7 +109,7 @@ impl Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for MockKafkaServi
     type Error = ();
     type Future = Pin<Box<dyn Future<Output = Result<(), ()>> + Send>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
