@@ -1,6 +1,9 @@
+mod header;
 mod request;
 mod response;
 
+pub use header::ResponseHeaderComplete;
+pub use header::ResponseHeaderIntermediary;
 pub use request::KafkaRequest;
 pub use response::KafkaResponse;
 

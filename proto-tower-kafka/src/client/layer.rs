@@ -1,5 +1,5 @@
 use crate::client::KafkaProtoClientConfig;
-use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
+use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse, ResponseHeaderIntermediary};
 use bytes::{Buf, BytesMut};
 use kafka_protocol::messages::*;
 use kafka_protocol::protocol::buf::ByteBuf;
@@ -58,8 +58,8 @@ where
     fn call(&mut self, (mut rx_chan, sx_chan): (Receiver<KafkaRequest>, Sender<KafkaResponse>)) -> Self::Future {
         let mut inner = self.inner.clone();
         let config = self.config.clone();
-        let mut random = self.rng.clone();
         Box::pin(async move {
+            let mut next_correlation_id = 1;
             // Tracked requests
             let mut tracked_requests = BTreeMap::<i32, (ApiKey, i16)>::new();
             // Create channel
@@ -80,10 +80,8 @@ where
                             }
                             Some(req) => {
                                 // Generate correlation_id
-                                let mut correlation_id: i32 = rand_i32(&mut random);
-                                while tracked_requests.contains_key(&correlation_id) {
-                                    correlation_id = rand_i32(&mut random);
-                                }
+                                let correlation_id: i32 = next_correlation_id;
+                                next_correlation_id += 1;
                                 let version = 3;
                                 tracked_requests.insert(correlation_id, (req.api_key(), version));
                                 req.into_full(version, correlation_id, config.client_id.clone()).write_to(&mut write).await?;
@@ -143,11 +141,17 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut
         return Ok(None);
     }
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
-    const HEADER_RESPONSE_VERSION: i16 = 1;
-    let header = ResponseHeader::decode(buf_mut, HEADER_RESPONSE_VERSION).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading header"))?;
+    const HEADER_RESPONSE_VERSION: i16 = 0;
+    eprintln!("Reading header: {:?}", buf_mut.peek_bytes(0..16).iter().collect::<Vec<_>>());
+    let header = ResponseHeaderIntermediary::decode(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading intermediary header"))?;
+    eprintln!("Correlation id: {}", header.correlation_id);
     let (api, version) = tracked_requests.remove(&header.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
         "Encountered correlation id in response that isn't tracked on client",
     ))?;
+    let _header = header
+        .complete(buf_mut, api, version)
+        .map_err(|_| KafkaProtocolError::UnhandledImplementation("Error completing header"))?;
+    eprintln!("After reading header: {:?}", buf_mut.peek_bytes(0..16).iter().collect::<Vec<_>>());
     eprintln!("Decoding response for API: {:?} with version {}", api, version);
     let resp: KafkaResponse = parse_response_internal(api, buf_mut, version)?;
     Ok(Some(resp))
@@ -161,7 +165,10 @@ macro_rules! handle_api_match {
                     [<$api_key Response>]::decode(&mut $buf_mut, $version)
                         .map(Box::new)
                         .map(KafkaResponse::[<$api_key Response>])
-                        .map_err(|_| KafkaProtocolError::UnhandledImplementation(concat!("Error decoding ", stringify!($api_key), " response")))?
+                        .map_err(|e| {
+                            eprintln!("Error decoding response: {:?}", e);
+                            KafkaProtocolError::UnhandledImplementation(concat!("Error decoding ", stringify!($api_key), " response"))
+                        })?
                 },
             )*
         }
