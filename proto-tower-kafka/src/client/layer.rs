@@ -1,5 +1,5 @@
 use crate::client::KafkaProtoClientConfig;
-use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse, ResponseHeaderIntermediary};
+use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
 use bytes::{Buf, BytesMut};
 use kafka_protocol::messages::*;
 use kafka_protocol::protocol::buf::ByteBuf;
@@ -143,14 +143,14 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     const HEADER_RESPONSE_VERSION: i16 = 0;
     eprintln!("Reading header: {:?}", buf_mut.peek_bytes(0..16).iter().collect::<Vec<_>>());
-    let header = ResponseHeaderIntermediary::decode(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading intermediary header"))?;
-    eprintln!("Correlation id: {}", header.correlation_id);
-    let (api, version) = tracked_requests.remove(&header.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
+    let correlation_id = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading correlation id"))?;
+    eprintln!("Correlation id: {}", correlation_id);
+    let (api, version) = tracked_requests.remove(&correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
         "Encountered correlation id in response that isn't tracked on client",
     ))?;
-    let _header = header
-        .complete(buf_mut, api, version)
-        .map_err(|_| KafkaProtocolError::UnhandledImplementation("Error completing header"))?;
+    let header_version = api.response_header_version(version);
+    eprintln!("Api {:?}, version {}, header version {}", api, version, header_version);
+    let _header = ResponseHeader::decode(buf_mut, header_version).map_err(|_| KafkaProtocolError::UnhandledImplementation("Unable to deserialise response header"))?;
     eprintln!("After reading header: {:?}", buf_mut.peek_bytes(0..16).iter().collect::<Vec<_>>());
     eprintln!("Decoding response for API: {:?} with version {}", api, version);
     let resp: KafkaResponse = parse_response_internal(api, buf_mut, version)?;
