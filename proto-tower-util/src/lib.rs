@@ -2,10 +2,12 @@
 
 mod chan;
 pub mod debug;
+mod debug_io_layer;
 mod test_io_service;
 mod write_to;
 
 pub use chan::sx_rx_chans;
+pub use debug_io_layer::{DebugIoLayer, DebugIoService};
 pub use test_io_service::TestIoService;
 pub use write_to::WriteTo;
 

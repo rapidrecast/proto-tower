@@ -5,12 +5,13 @@ use kafka_protocol::protocol::buf::ByteBuf;
 use kafka_protocol::protocol::Decodable;
 use std::task::Poll;
 
+/// Not a future, but is noop if there is not enough data (ie Poll::Pending)
 pub fn parse_kafka_request<B: ByteBuf>(buff: &mut B) -> Poll<Result<KafkaRequest, String>> {
     let size = Buf::try_get_i32(&mut buff.peek_bytes(0..4)).map_err(|e| format!("Size failed: {}", e))? as usize;
     if buff.remaining() < size + 4 {
         return Poll::Pending;
     }
-    // Get the size, so its not in the buffer
+    // Get the size, so it's not in the buffer
     let _size = Buf::try_get_i32(buff).unwrap();
     eprintln!("parse_kafka_request for buf:\n{}", proto_tower_util::debug::debug_hex(buff.chunk()));
     // Peek the first 4 bytes to determine header

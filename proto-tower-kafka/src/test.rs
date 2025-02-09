@@ -20,6 +20,7 @@ async fn test_client() {
                 client_id: None,
             },
         ))
+        .layer(proto_tower_util::DebugIoLayer {})
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(200),
         }))
