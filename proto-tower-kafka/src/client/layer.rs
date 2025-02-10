@@ -5,7 +5,7 @@ use kafka_protocol::messages::*;
 use kafka_protocol::protocol::buf::ByteBuf;
 use kafka_protocol::protocol::Decodable;
 use paste::paste;
-use proto_tower_util::WriteTo;
+use proto_tower_util::{BytesMutHelper, WriteTo};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::future::Future;
@@ -136,7 +136,7 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut
     }
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     const HEADER_RESPONSE_VERSION: i16 = 0;
-    eprintln!("Reading header: {:?}", buf_mut.peek_bytes(0..16).iter().collect::<Vec<_>>());
+    eprintln!("Reading header: {:?}", buf_mut.safe_peek(0..16).iter().collect::<Vec<_>>());
     let correlation_id = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading correlation id"))?;
     eprintln!("Correlation id: {}", correlation_id);
     let (api, version) = tracked_requests.remove(&correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(

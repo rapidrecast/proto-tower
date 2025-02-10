@@ -1,5 +1,6 @@
 //! Proto-tower-util is a collection of utilities that are used across the proto-tower project.
 
+mod bytes_mut_ext;
 mod chan;
 pub mod debug;
 mod debug_io_layer;
@@ -7,6 +8,7 @@ mod test_io_service;
 mod timout_counter;
 mod write_to;
 
+pub use bytes_mut_ext::BytesMutHelper;
 pub use chan::sx_rx_chans;
 pub use debug_io_layer::{DebugIoLayer, DebugIoService};
 pub use test_io_service::TestIoService;

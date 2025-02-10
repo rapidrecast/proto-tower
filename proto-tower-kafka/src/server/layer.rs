@@ -103,7 +103,7 @@ where
                                     match res {
                                         Ready(resp) => {
                                                 match resp {
-                                                    Ok(resp) => {
+                                                    Ok((header, resp)) => {
                                                         // let sz = data.len()-mut_buf.len();
                                                         // data.drain(..sz);
                                                         if let Err(_) = downstream_sx.send(resp.clone()).await {
