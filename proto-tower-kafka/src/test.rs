@@ -1,6 +1,6 @@
 use crate::client::make_layer::ProtoKafkaClientMakeLayer;
 use crate::client::KafkaProtoClientConfig;
-use crate::data::{KafkaRequest, KafkaResponse};
+use crate::data::{KafkaRequest, KafkaResponse, ProtoInfo};
 use crate::server::make_layer::ProtoKafkaServerMakeLayer;
 use crate::server::test::MockKafkaService;
 use crate::server::KafkaProtoServerConfig;
@@ -20,7 +20,13 @@ async fn test_client() {
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(200),
         }))
-        .service(MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(1, ApiVersionsResponse::default())]));
+        .service(MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(
+            ProtoInfo {
+                correlation_id: 1,
+                api_version: 3,
+            },
+            ApiVersionsResponse::default(),
+        )]));
     let ((read_svc, write_svc), (mut read, write)) = proto_tower_util::sx_rx_chans::<KafkaRequest, KafkaResponse>();
     let task = tokio::spawn(client.call((read_svc, write_svc)));
 
@@ -40,5 +46,14 @@ async fn test_client() {
 
     drop(write);
     drop(read);
-    assert_eq!(res, KafkaResponse::ApiVersionsResponse(1, Default::default()));
+    assert_eq!(
+        res,
+        KafkaResponse::ApiVersionsResponse(
+            ProtoInfo {
+                correlation_id: 1,
+                api_version: 3
+            },
+            Default::default()
+        )
+    );
 }

@@ -7,318 +7,323 @@ use kafka_protocol::protocol::Encodable;
 use std::fmt::Debug;
 use tokio::io::AsyncWriteExt;
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProtoInfo {
+    pub(crate) correlation_id: i32,
+    pub(crate) api_version: i16,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum KafkaResponse {
-    ProduceResponse(i32, ProduceResponse),
-    FetchResponse(i32, FetchResponse),
-    ListOffsetsResponse(i32, ListOffsetsResponse),
-    MetadataResponse(i32, MetadataResponse),
-    LeaderAndIsrResponse(i32, LeaderAndIsrResponse),
-    StopReplicaResponse(i32, StopReplicaResponse),
-    UpdateMetadataResponse(i32, UpdateMetadataResponse),
-    ControlledShutdownResponse(i32, ControlledShutdownResponse),
-    OffsetCommitResponse(i32, OffsetCommitResponse),
-    OffsetFetchResponse(i32, OffsetFetchResponse),
-    FindCoordinatorResponse(i32, FindCoordinatorResponse),
-    JoinGroupResponse(i32, JoinGroupResponse),
-    HeartbeatResponse(i32, HeartbeatResponse),
-    LeaveGroupResponse(i32, LeaveGroupResponse),
-    SyncGroupResponse(i32, SyncGroupResponse),
-    DescribeGroupsResponse(i32, DescribeGroupsResponse),
-    ListGroupsResponse(i32, ListGroupsResponse),
-    SaslHandshakeResponse(i32, SaslHandshakeResponse),
-    ApiVersionsResponse(i32, ApiVersionsResponse),
-    CreateTopicsResponse(i32, CreateTopicsResponse),
-    DeleteTopicsResponse(i32, DeleteTopicsResponse),
-    DeleteRecordsResponse(i32, DeleteRecordsResponse),
-    InitProducerIdResponse(i32, InitProducerIdResponse),
-    OffsetForLeaderEpochResponse(i32, OffsetForLeaderEpochResponse),
-    AddPartitionsToTxnResponse(i32, AddPartitionsToTxnResponse),
-    AddOffsetsToTxnResponse(i32, AddOffsetsToTxnResponse),
-    EndTxnResponse(i32, EndTxnResponse),
-    WriteTxnMarkersResponse(i32, WriteTxnMarkersResponse),
-    TxnOffsetCommitResponse(i32, TxnOffsetCommitResponse),
-    DescribeAclsResponse(i32, DescribeAclsResponse),
-    CreateAclsResponse(i32, CreateAclsResponse),
-    DeleteAclsResponse(i32, DeleteAclsResponse),
-    DescribeConfigsResponse(i32, DescribeConfigsResponse),
-    AlterConfigsResponse(i32, AlterConfigsResponse),
-    AlterReplicaLogDirsResponse(i32, AlterReplicaLogDirsResponse),
-    DescribeLogDirsResponse(i32, DescribeLogDirsResponse),
-    SaslAuthenticateResponse(i32, SaslAuthenticateResponse),
-    CreatePartitionsResponse(i32, CreatePartitionsResponse),
-    CreateDelegationTokenResponse(i32, CreateDelegationTokenResponse),
-    RenewDelegationTokenResponse(i32, RenewDelegationTokenResponse),
-    ExpireDelegationTokenResponse(i32, ExpireDelegationTokenResponse),
-    DescribeDelegationTokenResponse(i32, DescribeDelegationTokenResponse),
-    DeleteGroupsResponse(i32, DeleteGroupsResponse),
-    ElectLeadersResponse(i32, ElectLeadersResponse),
-    IncrementalAlterConfigsResponse(i32, IncrementalAlterConfigsResponse),
-    AlterPartitionReassignmentsResponse(i32, AlterPartitionReassignmentsResponse),
-    ListPartitionReassignmentsResponse(i32, ListPartitionReassignmentsResponse),
-    OffsetDeleteResponse(i32, OffsetDeleteResponse),
-    DescribeClientQuotasResponse(i32, DescribeClientQuotasResponse),
-    AlterClientQuotasResponse(i32, AlterClientQuotasResponse),
-    DescribeUserScramCredentialsResponse(i32, DescribeUserScramCredentialsResponse),
-    AlterUserScramCredentialsResponse(i32, AlterUserScramCredentialsResponse),
-    VoteResponse(i32, VoteResponse),
-    BeginQuorumEpochResponse(i32, BeginQuorumEpochResponse),
-    EndQuorumEpochResponse(i32, EndQuorumEpochResponse),
-    DescribeQuorumResponse(i32, DescribeQuorumResponse),
-    AlterPartitionResponse(i32, AlterPartitionResponse),
-    UpdateFeaturesResponse(i32, UpdateFeaturesResponse),
-    EnvelopeResponse(i32, EnvelopeResponse),
-    FetchSnapshotResponse(i32, FetchSnapshotResponse),
-    DescribeClusterResponse(i32, DescribeClusterResponse),
-    DescribeProducersResponse(i32, DescribeProducersResponse),
-    BrokerRegistrationResponse(i32, BrokerRegistrationResponse),
-    BrokerHeartbeatResponse(i32, BrokerHeartbeatResponse),
-    UnregisterBrokerResponse(i32, UnregisterBrokerResponse),
-    DescribeTransactionsResponse(i32, DescribeTransactionsResponse),
-    ListTransactionsResponse(i32, ListTransactionsResponse),
-    AllocateProducerIdsResponse(i32, AllocateProducerIdsResponse),
-    ConsumerGroupHeartbeatResponse(i32, ConsumerGroupHeartbeatResponse),
-    ConsumerGroupDescribeResponse(i32, ConsumerGroupDescribeResponse),
-    ControllerRegistrationResponse(i32, ControllerRegistrationResponse),
-    GetTelemetrySubscriptionsResponse(i32, GetTelemetrySubscriptionsResponse),
-    PushTelemetryResponse(i32, PushTelemetryResponse),
-    AssignReplicasToDirsResponse(i32, AssignReplicasToDirsResponse),
-    ListClientMetricsResourcesResponse(i32, ListClientMetricsResourcesResponse),
-    DescribeTopicPartitionsResponse(i32, DescribeTopicPartitionsResponse),
+    ProduceResponse(ProtoInfo, ProduceResponse),
+    FetchResponse(ProtoInfo, FetchResponse),
+    ListOffsetsResponse(ProtoInfo, ListOffsetsResponse),
+    MetadataResponse(ProtoInfo, MetadataResponse),
+    LeaderAndIsrResponse(ProtoInfo, LeaderAndIsrResponse),
+    StopReplicaResponse(ProtoInfo, StopReplicaResponse),
+    UpdateMetadataResponse(ProtoInfo, UpdateMetadataResponse),
+    ControlledShutdownResponse(ProtoInfo, ControlledShutdownResponse),
+    OffsetCommitResponse(ProtoInfo, OffsetCommitResponse),
+    OffsetFetchResponse(ProtoInfo, OffsetFetchResponse),
+    FindCoordinatorResponse(ProtoInfo, FindCoordinatorResponse),
+    JoinGroupResponse(ProtoInfo, JoinGroupResponse),
+    HeartbeatResponse(ProtoInfo, HeartbeatResponse),
+    LeaveGroupResponse(ProtoInfo, LeaveGroupResponse),
+    SyncGroupResponse(ProtoInfo, SyncGroupResponse),
+    DescribeGroupsResponse(ProtoInfo, DescribeGroupsResponse),
+    ListGroupsResponse(ProtoInfo, ListGroupsResponse),
+    SaslHandshakeResponse(ProtoInfo, SaslHandshakeResponse),
+    ApiVersionsResponse(ProtoInfo, ApiVersionsResponse),
+    CreateTopicsResponse(ProtoInfo, CreateTopicsResponse),
+    DeleteTopicsResponse(ProtoInfo, DeleteTopicsResponse),
+    DeleteRecordsResponse(ProtoInfo, DeleteRecordsResponse),
+    InitProducerIdResponse(ProtoInfo, InitProducerIdResponse),
+    OffsetForLeaderEpochResponse(ProtoInfo, OffsetForLeaderEpochResponse),
+    AddPartitionsToTxnResponse(ProtoInfo, AddPartitionsToTxnResponse),
+    AddOffsetsToTxnResponse(ProtoInfo, AddOffsetsToTxnResponse),
+    EndTxnResponse(ProtoInfo, EndTxnResponse),
+    WriteTxnMarkersResponse(ProtoInfo, WriteTxnMarkersResponse),
+    TxnOffsetCommitResponse(ProtoInfo, TxnOffsetCommitResponse),
+    DescribeAclsResponse(ProtoInfo, DescribeAclsResponse),
+    CreateAclsResponse(ProtoInfo, CreateAclsResponse),
+    DeleteAclsResponse(ProtoInfo, DeleteAclsResponse),
+    DescribeConfigsResponse(ProtoInfo, DescribeConfigsResponse),
+    AlterConfigsResponse(ProtoInfo, AlterConfigsResponse),
+    AlterReplicaLogDirsResponse(ProtoInfo, AlterReplicaLogDirsResponse),
+    DescribeLogDirsResponse(ProtoInfo, DescribeLogDirsResponse),
+    SaslAuthenticateResponse(ProtoInfo, SaslAuthenticateResponse),
+    CreatePartitionsResponse(ProtoInfo, CreatePartitionsResponse),
+    CreateDelegationTokenResponse(ProtoInfo, CreateDelegationTokenResponse),
+    RenewDelegationTokenResponse(ProtoInfo, RenewDelegationTokenResponse),
+    ExpireDelegationTokenResponse(ProtoInfo, ExpireDelegationTokenResponse),
+    DescribeDelegationTokenResponse(ProtoInfo, DescribeDelegationTokenResponse),
+    DeleteGroupsResponse(ProtoInfo, DeleteGroupsResponse),
+    ElectLeadersResponse(ProtoInfo, ElectLeadersResponse),
+    IncrementalAlterConfigsResponse(ProtoInfo, IncrementalAlterConfigsResponse),
+    AlterPartitionReassignmentsResponse(ProtoInfo, AlterPartitionReassignmentsResponse),
+    ListPartitionReassignmentsResponse(ProtoInfo, ListPartitionReassignmentsResponse),
+    OffsetDeleteResponse(ProtoInfo, OffsetDeleteResponse),
+    DescribeClientQuotasResponse(ProtoInfo, DescribeClientQuotasResponse),
+    AlterClientQuotasResponse(ProtoInfo, AlterClientQuotasResponse),
+    DescribeUserScramCredentialsResponse(ProtoInfo, DescribeUserScramCredentialsResponse),
+    AlterUserScramCredentialsResponse(ProtoInfo, AlterUserScramCredentialsResponse),
+    VoteResponse(ProtoInfo, VoteResponse),
+    BeginQuorumEpochResponse(ProtoInfo, BeginQuorumEpochResponse),
+    EndQuorumEpochResponse(ProtoInfo, EndQuorumEpochResponse),
+    DescribeQuorumResponse(ProtoInfo, DescribeQuorumResponse),
+    AlterPartitionResponse(ProtoInfo, AlterPartitionResponse),
+    UpdateFeaturesResponse(ProtoInfo, UpdateFeaturesResponse),
+    EnvelopeResponse(ProtoInfo, EnvelopeResponse),
+    FetchSnapshotResponse(ProtoInfo, FetchSnapshotResponse),
+    DescribeClusterResponse(ProtoInfo, DescribeClusterResponse),
+    DescribeProducersResponse(ProtoInfo, DescribeProducersResponse),
+    BrokerRegistrationResponse(ProtoInfo, BrokerRegistrationResponse),
+    BrokerHeartbeatResponse(ProtoInfo, BrokerHeartbeatResponse),
+    UnregisterBrokerResponse(ProtoInfo, UnregisterBrokerResponse),
+    DescribeTransactionsResponse(ProtoInfo, DescribeTransactionsResponse),
+    ListTransactionsResponse(ProtoInfo, ListTransactionsResponse),
+    AllocateProducerIdsResponse(ProtoInfo, AllocateProducerIdsResponse),
+    ConsumerGroupHeartbeatResponse(ProtoInfo, ConsumerGroupHeartbeatResponse),
+    ConsumerGroupDescribeResponse(ProtoInfo, ConsumerGroupDescribeResponse),
+    ControllerRegistrationResponse(ProtoInfo, ControllerRegistrationResponse),
+    GetTelemetrySubscriptionsResponse(ProtoInfo, GetTelemetrySubscriptionsResponse),
+    PushTelemetryResponse(ProtoInfo, PushTelemetryResponse),
+    AssignReplicasToDirsResponse(ProtoInfo, AssignReplicasToDirsResponse),
+    ListClientMetricsResourcesResponse(ProtoInfo, ListClientMetricsResourcesResponse),
+    DescribeTopicPartitionsResponse(ProtoInfo, DescribeTopicPartitionsResponse),
 }
 
 #[async_trait]
 impl<Writer: tokio::io::AsyncWrite + Send + Unpin + 'static, E: Debug> proto_tower_util::WriteTo<Writer, KafkaProtocolError<E>> for KafkaResponse {
     async fn write_to(&self, writer: &mut Writer) -> Result<(), KafkaProtocolError<E>> {
-        let version = 666;
         match self {
-            KafkaResponse::ProduceResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ProduceResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::FetchResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::FetchResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ListOffsetsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ListOffsetsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::MetadataResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::MetadataResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::LeaderAndIsrResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::LeaderAndIsrResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::StopReplicaResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::StopReplicaResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::UpdateMetadataResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::UpdateMetadataResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ControlledShutdownResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ControlledShutdownResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::OffsetCommitResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::OffsetCommitResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::OffsetFetchResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::OffsetFetchResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::FindCoordinatorResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::FindCoordinatorResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::JoinGroupResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::JoinGroupResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::HeartbeatResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::HeartbeatResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::LeaveGroupResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::LeaveGroupResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::SyncGroupResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::SyncGroupResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeGroupsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeGroupsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ListGroupsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ListGroupsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::SaslHandshakeResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::SaslHandshakeResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ApiVersionsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ApiVersionsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::CreateTopicsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::CreateTopicsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DeleteTopicsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DeleteTopicsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DeleteRecordsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DeleteRecordsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::InitProducerIdResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::InitProducerIdResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::OffsetForLeaderEpochResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::OffsetForLeaderEpochResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AddPartitionsToTxnResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AddPartitionsToTxnResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AddOffsetsToTxnResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AddOffsetsToTxnResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::EndTxnResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::EndTxnResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::WriteTxnMarkersResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::WriteTxnMarkersResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::TxnOffsetCommitResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::TxnOffsetCommitResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeAclsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeAclsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::CreateAclsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::CreateAclsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DeleteAclsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DeleteAclsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeConfigsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeConfigsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AlterConfigsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AlterConfigsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AlterReplicaLogDirsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AlterReplicaLogDirsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeLogDirsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeLogDirsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::SaslAuthenticateResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::SaslAuthenticateResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::CreatePartitionsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::CreatePartitionsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::CreateDelegationTokenResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::CreateDelegationTokenResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::RenewDelegationTokenResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::RenewDelegationTokenResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ExpireDelegationTokenResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ExpireDelegationTokenResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeDelegationTokenResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeDelegationTokenResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DeleteGroupsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DeleteGroupsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ElectLeadersResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ElectLeadersResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::IncrementalAlterConfigsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::IncrementalAlterConfigsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AlterPartitionReassignmentsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AlterPartitionReassignmentsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ListPartitionReassignmentsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ListPartitionReassignmentsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::OffsetDeleteResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::OffsetDeleteResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeClientQuotasResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeClientQuotasResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AlterClientQuotasResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AlterClientQuotasResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeUserScramCredentialsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeUserScramCredentialsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AlterUserScramCredentialsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AlterUserScramCredentialsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::VoteResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::VoteResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::BeginQuorumEpochResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::BeginQuorumEpochResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::EndQuorumEpochResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::EndQuorumEpochResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeQuorumResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeQuorumResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AlterPartitionResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AlterPartitionResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::UpdateFeaturesResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::UpdateFeaturesResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::EnvelopeResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::EnvelopeResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::FetchSnapshotResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::FetchSnapshotResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeClusterResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeClusterResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeProducersResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeProducersResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::BrokerRegistrationResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::BrokerRegistrationResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::BrokerHeartbeatResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::BrokerHeartbeatResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::UnregisterBrokerResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::UnregisterBrokerResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeTransactionsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeTransactionsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ListTransactionsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ListTransactionsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AllocateProducerIdsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AllocateProducerIdsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ConsumerGroupHeartbeatResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ConsumerGroupHeartbeatResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ConsumerGroupDescribeResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ConsumerGroupDescribeResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ControllerRegistrationResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ControllerRegistrationResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::GetTelemetrySubscriptionsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::GetTelemetrySubscriptionsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::PushTelemetryResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::PushTelemetryResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::AssignReplicasToDirsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::AssignReplicasToDirsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::ListClientMetricsResourcesResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::ListClientMetricsResourcesResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
-            KafkaResponse::DescribeTopicPartitionsResponse(correlation_id, inner) => {
-                encode_and_write_response!(correlation_id, inner, writer, version)
+            KafkaResponse::DescribeTopicPartitionsResponse(proto_info, inner) => {
+                encode_and_write_response!(proto_info, inner, writer)
             }
         }
     }

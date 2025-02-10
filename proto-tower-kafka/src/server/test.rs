@@ -1,4 +1,4 @@
-use crate::data::{KafkaRequest, KafkaResponse};
+use crate::data::{KafkaRequest, KafkaResponse, ProtoInfo};
 use crate::server::make_layer::ProtoKafkaServerMakeLayer;
 use crate::server::KafkaProtoServerConfig;
 use bytes::BytesMut;
@@ -56,7 +56,13 @@ async fn test_rdkafka() {
 
 #[tokio::test]
 async fn test_raw() {
-    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(1, ApiVersionsResponse::default())]);
+    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(
+        ProtoInfo {
+            correlation_id: 1,
+            api_version: 3,
+        },
+        ApiVersionsResponse::default(),
+    )]);
     let mut kafka_service = ServiceBuilder::new()
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(2000),
@@ -90,7 +96,13 @@ async fn bind_and_serve(port: Option<u16>) -> (JoinHandle<()>, u16, MockKafkaSer
     let port = port.unwrap_or_default();
     let listener = TcpListener::bind(("0.0.0.0", port)).await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(1, ApiVersionsResponse::default())]);
+    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(
+        ProtoInfo {
+            correlation_id: 1,
+            api_version: 3,
+        },
+        ApiVersionsResponse::default(),
+    )]);
     let inner_kafka_service = kafka_service.clone();
     let task = tokio::spawn(async move {
         let (stream, _addr) = listener.accept().await.unwrap();

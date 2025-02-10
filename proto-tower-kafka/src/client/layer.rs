@@ -1,5 +1,5 @@
 use crate::client::KafkaProtoClientConfig;
-use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
+use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse, ProtoInfo};
 use bytes::{Buf, BytesMut};
 use kafka_protocol::messages::*;
 use kafka_protocol::protocol::buf::ByteBuf;
@@ -57,6 +57,7 @@ where
         Box::pin(async move {
             let mut next_correlation_id = 1;
             // Tracked requests
+            // correlation_id -> (api_key, header_version)
             let mut tracked_requests = BTreeMap::<i32, (ApiKey, i16)>::new();
             // Create channel
             let (svc_read, mut write) = tokio::io::simplex(1024);
@@ -125,6 +126,10 @@ where
 }
 
 async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut BTreeMap<i32, (ApiKey, i16)>) -> Result<Option<KafkaResponse>, KafkaProtocolError<E>> {
+    if buf_mut.len() < 4 {
+        eprintln!("Not enough data to read size");
+        return Ok(None);
+    }
     let sz = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     if buf_mut.len() < sz as usize + 4 {
         eprintln!("Not enough data to read (expecting {} but have {})", sz, buf_mut.len() + 4);
@@ -156,10 +161,11 @@ macro_rules! handle_api_match {
         match $api {
             $(
                 ApiKey::$api_key => {
+                    let api_version = 0;
                     let correlation_id = 0;
                     paste! {
                     [<$api_key Response>]::decode(&mut $buf_mut, $version)
-                        .map(|r| KafkaResponse::[<$api_key Response>](correlation_id, r))
+                        .map(|r| KafkaResponse::[<$api_key Response>](ProtoInfo{correlation_id, api_version}, r))
                         .map_err(|e| {
                             eprintln!("Error decoding response: {:?}", e);
                             KafkaProtocolError::UnhandledImplementation(concat!("Error decoding ", stringify!($api_key), " response"))

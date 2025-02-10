@@ -6,6 +6,7 @@ pub use header::ResponseHeaderComplete;
 pub use header::ResponseHeaderIntermediary;
 pub use request::KafkaRequest;
 pub use response::KafkaResponse;
+pub use response::ProtoInfo;
 
 use std::fmt::Debug;
 
@@ -19,16 +20,18 @@ pub enum KafkaProtocolError<E: Debug> {
 
 #[macro_export]
 macro_rules! encode_and_write_response {
-    ($correlation_id:expr, $inner:ident, $writer:ident, $version:ident) => {{
+    ($proto_info:expr, $inner:ident, $writer:ident) => {{
         let mut buff_mut = BytesMut::new();
         // Produce the header
-        let header = ResponseHeader::default().with_correlation_id(*$correlation_id);
+        let (correlation_id, version) = ($proto_info.correlation_id, $proto_info.api_version);
+        let header = ResponseHeader::default().with_correlation_id(correlation_id);
+        // TODO: header version?
         header
-            .encode(&mut buff_mut, $version)
+            .encode(&mut buff_mut, version)
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response header encode failure"))?;
         // Produce the response
         $inner
-            .encode(&mut buff_mut, $version)
+            .encode(&mut buff_mut, version)
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response encode failure"))?;
         let sz = buff_mut.len() as i32;
         let sz_bytes: [u8; 4] = sz.to_be_bytes();
