@@ -24,18 +24,17 @@ async fn test_client() {
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(200),
         }))
-        .service(MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(Box::new(
-            ApiVersionsResponse::default(),
-        ))]));
+        .service(MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]));
     let ((read_svc, write_svc), (mut read, write)) = proto_tower_util::sx_rx_chans::<KafkaRequest, KafkaResponse>();
     let task = tokio::spawn(client.call((read_svc, write_svc)));
 
     write
-        .send(KafkaRequest::ApiVersionsRequest(Box::new(
+        .send(KafkaRequest::ApiVersionsRequest(
+            1,
             ApiVersionsRequest::default()
                 .with_client_software_name(StrBytes::from("test-client"))
                 .with_client_software_version(StrBytes::from("2.3.0")),
-        )))
+        ))
         .await
         .unwrap();
     // Set some value that is incorrect but we will change

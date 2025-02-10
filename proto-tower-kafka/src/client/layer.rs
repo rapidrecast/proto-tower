@@ -84,7 +84,7 @@ where
                                 next_correlation_id += 1;
                                 let version = 3;
                                 tracked_requests.insert(correlation_id, (req.api_key(), version));
-                                req.into_full(version, correlation_id, config.client_id.clone()).write_to(&mut write).await?;
+                                req.into_full(version, config.client_id.clone()).write_to(&mut write).await?;
                             }
                         }
                     }
@@ -157,7 +157,6 @@ macro_rules! handle_api_match {
             $(
                 ApiKey::$api_key => paste! {
                     [<$api_key Response>]::decode(&mut $buf_mut, $version)
-                        .map(Box::new)
                         .map(KafkaResponse::[<$api_key Response>])
                         .map_err(|e| {
                             eprintln!("Error decoding response: {:?}", e);
