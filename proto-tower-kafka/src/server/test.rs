@@ -2,8 +2,8 @@ use crate::data::{KafkaRequest, KafkaResponse};
 use crate::server::make_layer::ProtoKafkaServerMakeLayer;
 use crate::server::KafkaProtoServerConfig;
 use bytes::BytesMut;
-use kafka_protocol::messages::ApiVersionsResponse;
-use kafka_protocol::protocol::Decodable;
+use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse};
+use kafka_protocol::protocol::{Decodable, StrBytes};
 use proto_tower_util::debug::debug_hex;
 use proto_tower_util::{AsyncReadToBuf, ZeroReadBehaviour};
 use rdkafka::producer::{FutureProducer, FutureRecord};
@@ -40,7 +40,14 @@ async fn test_rdkafka() {
     task.abort();
 
     let requests = kafka_service.requests.lock().await;
-    assert_eq!(*requests, vec![]);
+    assert_eq!(
+        *requests,
+        vec![KafkaRequest::ApiVersionsRequest(Box::new(
+            ApiVersionsRequest::default()
+                .with_client_software_version(StrBytes::from("2.3.0"))
+                .with_client_software_name(StrBytes::from("librdkafka"))
+        ))]
+    );
     let responses = kafka_service.responses.lock().await;
     assert_eq!(responses.len(), 0);
     client_res.unwrap();

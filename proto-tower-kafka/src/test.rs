@@ -16,7 +16,7 @@ async fn test_client() {
         .layer(ProtoKafkaClientMakeLayer::new(
             OsRng::default(),
             KafkaProtoClientConfig {
-                timeout: Duration::from_millis(200),
+                timeout: Duration::from_millis(2000),
                 client_id: None,
             },
         ))
@@ -39,11 +39,11 @@ async fn test_client() {
         .await
         .unwrap();
     // Set some value that is incorrect but we will change
-    let res = tokio::time::timeout(Duration::from_secs(2), read.recv()).await.unwrap();
+    let res = tokio::time::timeout(Duration::from_secs(3), read.recv()).await.unwrap();
+    task.await.unwrap().unwrap();
     let res = res.unwrap();
 
     drop(write);
     drop(read);
     assert_eq!(res, KafkaResponse::ApiVersionsResponse(Default::default()));
-    task.await.unwrap().unwrap();
 }

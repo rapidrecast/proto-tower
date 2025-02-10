@@ -1,13 +1,14 @@
 use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
 use crate::server::parser::parse_kafka_request;
 use crate::server::KafkaProtoServerConfig;
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
+use kafka_protocol::protocol::buf::ByteBuf;
 use proto_tower_util::debug::debug_hex;
-use proto_tower_util::{AsyncReadToBuf, WriteTo, ZeroReadBehaviour};
+use proto_tower_util::{CountOrDuration, TimeoutCounter, WriteTo};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tower::Service;
 
@@ -54,67 +55,82 @@ where
     }
 
     /// Indefinitely process the protocol
-    fn call(&mut self, (reader, writer): (Reader, Writer)) -> Self::Future {
+    fn call(&mut self, (mut input_reader, mut input_writer): (Reader, Writer)) -> Self::Future {
         let mut service = self.inner.clone();
         let config = self.config.clone();
         Box::pin(async move {
             // Buffer readers and writers
-            let mut reader = BufReader::new(reader);
-            let mut writer = BufWriter::new(writer);
+            // let mut reader = BufReader::new(reader);
+            // let mut writer = BufWriter::new(writer);
 
             // Start the downstream call
-            let (svc_write, mut read) = tokio::sync::mpsc::channel::<KafkaResponse>(1024);
-            let (write, svc_read) = tokio::sync::mpsc::channel::<KafkaRequest>(1024);
-            let svc_fut = tokio::spawn(service.call((svc_read, svc_write)));
+            let (svc_sx, mut downstream_rx) = tokio::sync::mpsc::channel::<KafkaResponse>(1024);
+            let (downstream_sx, svc_rx) = tokio::sync::mpsc::channel::<KafkaRequest>(1024);
+            let svc_fut = tokio::spawn(service.call((svc_rx, svc_sx)));
 
-            let mut data = Vec::with_capacity(1024);
-            let read_buf = AsyncReadToBuf::new_1024(ZeroReadBehaviour::TickAndYield);
+            let mut inbound_read_buffer = BytesMut::new();
+            let mut inbound_read_temp_buffer = [0u8; 1024];
+            let inbound_timeout = TimeoutCounter::new(CountOrDuration::Count(10), CountOrDuration::Duration(config.timeout));
             loop {
                 tokio::select! {
                     // Inner service sending responses
-                    r = read.recv() => {
+                    r = downstream_rx.recv() => {
                         match r {
                             None => {
                                 return Err(KafkaProtocolError::InternalServiceClosed);
                             }
                             Some(resp) => {
                                 eprintln!("Sending response: {:?}", resp);
-                                resp.write_to(&mut writer).await?;
+                                resp.write_to(&mut input_writer).await?;
                             }
                         }
                     }
                     // Protocol sending requests
-                    r = read_buf.read_with_timeout(&mut reader, config.timeout, None) => {
-                        if r.is_empty() {
-                            return Err(KafkaProtocolError::Timeout);
-                        }
-                        data.extend_from_slice(&r);
-                        eprintln!("Before check\n{}", debug_hex(&data));
-                        if let Some(mut mut_buf) = check_valid_packet(&mut data) {
-                            eprintln!("After check\n{}", debug_hex(&mut_buf));
-                            let res = parse_kafka_request(&mut mut_buf);
-                            match res {
-                                Ready(resp) => {
-                                        match resp {
-                                            Ok(resp) => {
-                                                // let sz = data.len()-mut_buf.len();
-                                                // data.drain(..sz);
-                                                if let Err(_) = write.send(resp.clone()).await {
-                                                    return Err(KafkaProtocolError::InternalServiceClosed);
+                    sz = input_reader.read(&mut inbound_read_temp_buffer) => {
+                        match sz {
+                            Ok(0) => {
+                                // noop, but might indicate termination
+                                eprintln!("Zero read on kafka server layer");
+                                return Err(KafkaProtocolError::InternalServiceClosed);
+                            }
+                            Ok(sz) => {
+                                inbound_timeout.reset();
+                                inbound_read_buffer.extend_from_slice(&inbound_read_temp_buffer[..sz]);
+                                eprintln!("Before check\n{}", debug_hex(&inbound_read_buffer));
+                                if let Some(mut mut_buf) = check_valid_packet(&mut inbound_read_buffer) {
+                                    eprintln!("After check\n{}", debug_hex(&mut_buf));
+                                    let res = parse_kafka_request(&mut mut_buf);
+                                    match res {
+                                        Ready(resp) => {
+                                                match resp {
+                                                    Ok(resp) => {
+                                                        // let sz = data.len()-mut_buf.len();
+                                                        // data.drain(..sz);
+                                                        if let Err(_) = downstream_sx.send(resp.clone()).await {
+                                                            return Err(KafkaProtocolError::InternalServiceClosed);
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        eprintln!("Buffer:\n{}", debug_hex(&mut_buf));
+                                                        eprintln!("Error parsing request: {:?}", e);
+                                                        // No-op, not enough data. Assuming parsing is valid.
+                                                    }
                                                 }
                                             }
-                                            Err(e) => {
-                                                eprintln!("Buffer:\n{}", debug_hex(&mut_buf));
-                                                eprintln!("Error parsing request: {:?}", e);
-                                                // No-op, not enough data. Assuming parsing is valid.
-                                            }
+                                        Pending => {
+                                                eprintln!("Pending");
                                         }
                                     }
-                                Pending => {
-                                        eprintln!("Pending");
                                 }
                             }
+                            Err(e) => {
+                                eprintln!("Error reading: {:?}", e);
+                                return Err(KafkaProtocolError::InternalServiceClosed);
+                            }
                         }
+                    }
+                    e = inbound_timeout.next_timeout() => {
+                        e.map_err(|_| KafkaProtocolError::Timeout)?;
                     }
                 }
                 if svc_fut.is_finished() {
@@ -130,17 +146,13 @@ where
     }
 }
 
-fn check_valid_packet(buff: &mut Vec<u8>) -> Option<BytesMut> {
-    let sz = buff.get(0..4)?;
-    let sz = i32::from_be_bytes(sz.try_into().unwrap()) as usize;
+fn check_valid_packet(buff: &mut BytesMut) -> Option<BytesMut> {
+    let sz = Buf::try_get_i32(&mut buff.peek_bytes(0..4)).ok()?;
+    let sz = sz as usize;
     if buff.len() < sz + 4 {
         return None;
     }
-    let sz_raw = buff.drain(..4);
-    let sz_raw = sz_raw.collect::<Vec<u8>>();
-    let ret = buff.drain(..sz);
     let mut mut_buf = BytesMut::new();
-    mut_buf.extend_from_slice(&sz_raw);
-    mut_buf.extend_from_slice(&ret.collect::<Vec<u8>>());
+    mut_buf.extend(buff.try_get_bytes(sz + 4).ok()?);
     Some(mut_buf)
 }

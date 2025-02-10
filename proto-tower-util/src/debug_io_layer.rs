@@ -65,7 +65,7 @@ where
                             }
                             Ok(sz) => {
                                 let have_read = &input_read_buffer[..sz];
-                                eprintln!("{} Read {} bytes: {}", IDENTIFIER, sz, escape_bytes_hex(have_read));
+                                eprintln!("{} Read {} bytes\n{}", IDENTIFIER, sz, escape_bytes_hex(have_read));
                                 if let Err(e) = write_this.write_all(have_read).await {
                                     eprintln!("{} Failed to write to downstream service: {:?}", IDENTIFIER, e);
                                     break;

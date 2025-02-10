@@ -4,11 +4,13 @@ mod chan;
 pub mod debug;
 mod debug_io_layer;
 mod test_io_service;
+mod timout_counter;
 mod write_to;
 
 pub use chan::sx_rx_chans;
 pub use debug_io_layer::{DebugIoLayer, DebugIoService};
 pub use test_io_service::TestIoService;
+pub use timout_counter::{CountOrDuration, NextTimeout, TimeoutCounter};
 pub use write_to::WriteTo;
 
 use std::cmp::min;
@@ -44,12 +46,17 @@ impl<const S: usize> AsyncReadToBuf<S> {
         reader.read_until(byte, &mut buf).await.unwrap();
         buf
     }
-
-    pub async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut READ, timeout: Duration, desired_size: Option<usize>) -> Vec<u8> {
+    pub async fn read_with_timeout_bytes<READ: AsyncReadExt + Unpin + Send + 'static>(
+        &self,
+        reader: &mut READ,
+        writer: &mut bytes::BytesMut,
+        timeout: Duration,
+        desired_size: Option<usize>,
+    ) {
         // TODO(https://github.com/rapidrecast/proto-tower/issues/1): Use async read buffer
         let mut data = match desired_size {
-            None => Vec::new(),
-            Some(sz) => Vec::with_capacity(sz),
+            None => bytes::BytesMut::new(),
+            Some(sz) => bytes::BytesMut::with_capacity(sz),
         };
         let mut buffer = [0u8; S];
         let finished = AtomicBool::new(false);
@@ -95,7 +102,12 @@ impl<const S: usize> AsyncReadToBuf<S> {
                 }
             }
         }
-        data
+    }
+
+    pub async fn read_with_timeout<READ: AsyncReadExt + Unpin + Send + 'static>(&self, reader: &mut READ, timeout: Duration, desired_size: Option<usize>) -> Vec<u8> {
+        let mut buf = bytes::BytesMut::new();
+        self.read_with_timeout_bytes(reader, &mut buf, timeout, desired_size).await;
+        buf.to_vec()
     }
 }
 

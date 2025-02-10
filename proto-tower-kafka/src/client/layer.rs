@@ -128,12 +128,6 @@ where
     }
 }
 
-fn rand_i32<RNG: rand::TryRngCore>(rng: &mut RNG) -> i32 {
-    let mut bytes = [0u8; 4];
-    rng.try_fill_bytes(&mut bytes).unwrap();
-    i32::from_be_bytes(bytes)
-}
-
 async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut BTreeMap<i32, (ApiKey, i16)>) -> Result<Option<KafkaResponse>, KafkaProtocolError<E>> {
     let sz = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
     if buf_mut.len() < sz as usize + 4 {
