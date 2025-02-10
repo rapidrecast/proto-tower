@@ -18,34 +18,30 @@ use tokio::sync::mpsc::Sender;
 use tower::Service;
 
 #[derive(Clone)]
-pub struct ProtoKafkaClientLayer<Svc, E, RNG>
+pub struct ProtoKafkaClientLayer<Svc, E>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
-    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
     inner: Svc,
     config: KafkaProtoClientConfig,
-    rng: RNG,
 }
 
-impl<Svc, E, RNG> ProtoKafkaClientLayer<Svc, E, RNG>
+impl<Svc, E> ProtoKafkaClientLayer<Svc, E>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
-    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
-    pub fn new(inner: Svc, rng: RNG, config: KafkaProtoClientConfig) -> Self {
-        ProtoKafkaClientLayer { inner, rng, config }
+    pub fn new(inner: Svc, config: KafkaProtoClientConfig) -> Self {
+        ProtoKafkaClientLayer { inner, config }
     }
 }
 
-impl<Svc, E, SvcFut, RNG> Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for ProtoKafkaClientLayer<Svc, E, RNG>
+impl<Svc, E, SvcFut> Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for ProtoKafkaClientLayer<Svc, E>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E, Future = SvcFut> + Send + Clone + 'static,
     SvcFut: Future<Output = Result<(), E>> + Send + 'static,
     E: Debug + Send + 'static,
-    RNG: rand::TryRngCore + Send + Clone + 'static,
 {
     type Response = ();
     type Error = KafkaProtocolError<E>;
@@ -135,7 +131,6 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut
         return Ok(None);
     }
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
-    const HEADER_RESPONSE_VERSION: i16 = 0;
     eprintln!("Reading header: {:?}", buf_mut.safe_peek(0..16).iter().collect::<Vec<_>>());
     let correlation_id = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading correlation id"))?;
     eprintln!("Correlation id: {}", correlation_id);
@@ -155,13 +150,16 @@ macro_rules! handle_api_match {
     ($api:expr, $buf_mut:expr, $version:expr, $( $api_key:ident ),* ) => {
         match $api {
             $(
-                ApiKey::$api_key => paste! {
+                ApiKey::$api_key => {
+                    let correlation_id = 0;
+                    paste! {
                     [<$api_key Response>]::decode(&mut $buf_mut, $version)
-                        .map(KafkaResponse::[<$api_key Response>])
+                        .map(|r| KafkaResponse::[<$api_key Response>](correlation_id, r))
                         .map_err(|e| {
                             eprintln!("Error decoding response: {:?}", e);
                             KafkaProtocolError::UnhandledImplementation(concat!("Error decoding ", stringify!($api_key), " response"))
                         })?
+                    }
                 },
             )*
         }

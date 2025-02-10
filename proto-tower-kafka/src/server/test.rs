@@ -56,7 +56,7 @@ async fn test_rdkafka() {
 
 #[tokio::test]
 async fn test_raw() {
-    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]);
+    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(1, ApiVersionsResponse::default())]);
     let mut kafka_service = ServiceBuilder::new()
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(2000),
@@ -77,7 +77,6 @@ async fn test_raw() {
     let mut buf = reader.read_with_timeout(&mut read, Duration::from_secs(1), None).await;
     assert!(!buf.is_empty());
     let sz = buf.drain(0..4).map(|b| b as usize).fold(0, |acc, x| acc * 256 + x);
-    // let sz = buf[0..4].iter().map(|b| *b as usize).fold(0, |acc, x| acc * 256 + x);
     assert_eq!(buf.len(), sz);
     let mut byte_buf = BytesMut::new();
     byte_buf.extend_from_slice(&buf);
@@ -91,7 +90,7 @@ async fn bind_and_serve(port: Option<u16>) -> (JoinHandle<()>, u16, MockKafkaSer
     let port = port.unwrap_or_default();
     let listener = TcpListener::bind(("0.0.0.0", port)).await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default())]);
+    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(1, ApiVersionsResponse::default())]);
     let inner_kafka_service = kafka_service.clone();
     let task = tokio::spawn(async move {
         let (stream, _addr) = listener.accept().await.unwrap();

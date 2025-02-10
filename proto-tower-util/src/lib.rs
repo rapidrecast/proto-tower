@@ -51,7 +51,7 @@ impl<const S: usize> AsyncReadToBuf<S> {
     pub async fn read_with_timeout_bytes<READ: AsyncReadExt + Unpin + Send + 'static>(
         &self,
         reader: &mut READ,
-        writer: &mut bytes::BytesMut,
+        _writer: &mut bytes::BytesMut,
         timeout: Duration,
         desired_size: Option<usize>,
     ) {

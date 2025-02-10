@@ -103,9 +103,7 @@ where
                                     match res {
                                         Ready(resp) => {
                                                 match resp {
-                                                    Ok((header, resp)) => {
-                                                        // let sz = data.len()-mut_buf.len();
-                                                        // data.drain(..sz);
+                                                    Ok((_header, resp)) => {
                                                         if let Err(_) = downstream_sx.send(resp.clone()).await {
                                                             return Err(KafkaProtocolError::InternalServiceClosed);
                                                         }

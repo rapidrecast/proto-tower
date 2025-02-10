@@ -43,17 +43,16 @@ macro_rules! encode_and_write_request {
         let mut buff_mut = BytesMut::new();
 
         // Special handling for ApiVersionsRequest
-        if let key = get_api_key($inner) {
-            let header = RequestHeader::default()
-                .with_request_api_key(key)
-                .with_request_api_version($version)
-                .with_correlation_id(*$correlation)
-                .with_client_id($client_id.map(|x| x.into()));
+        let key = get_api_key($inner);
+        let header = RequestHeader::default()
+            .with_request_api_key(key)
+            .with_request_api_version($version)
+            .with_correlation_id(*$correlation)
+            .with_client_id($client_id.map(|x| x.into()));
 
-            header
-                .encode(&mut buff_mut, $version)
-                .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response header encode failure"))?;
-        }
+        header
+            .encode(&mut buff_mut, $version)
+            .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response header encode failure"))?;
 
         $inner
             .encode(&mut buff_mut, $version)
