@@ -102,19 +102,20 @@ where
                                     let res = parse_kafka_request(&mut mut_buf);
                                     match res {
                                         Ready(resp) => {
-                                                match resp {
-                                                    Ok((_header, resp)) => {
-                                                        if let Err(_) = downstream_sx.send(resp.clone()).await {
-                                                            return Err(KafkaProtocolError::InternalServiceClosed);
-                                                        }
-                                                    }
-                                                    Err(e) => {
-                                                        eprintln!("Buffer:\n{}", debug_hex(&mut_buf));
-                                                        eprintln!("Error parsing request: {:?}", e);
-                                                        // No-op, not enough data. Assuming parsing is valid.
+                                            match resp {
+                                                Ok((_header, resp)) => {
+                                                    // TODO we should retain protocol info from the header
+                                                    if let Err(_) = downstream_sx.send(resp.clone()).await {
+                                                        return Err(KafkaProtocolError::InternalServiceClosed);
                                                     }
                                                 }
+                                                Err(e) => {
+                                                    eprintln!("Buffer:\n{}", debug_hex(&mut_buf));
+                                                    eprintln!("Error parsing request: {:?}", e);
+                                                    // No-op, not enough data. Assuming parsing is valid.
+                                                }
                                             }
+                                        }
                                         Pending => {
                                                 eprintln!("Pending");
                                         }

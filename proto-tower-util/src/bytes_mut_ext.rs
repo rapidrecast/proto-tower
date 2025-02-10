@@ -6,6 +6,7 @@ pub trait BytesMutHelper {
 }
 
 impl BytesMutHelper for BytesMut {
+    /// TODO this may be deprecated in favour of BytesMut::get - check unused
     fn safe_peek(&self, range: Range<usize>) -> Option<Bytes> {
         if range.end > self.len() {
             return None;

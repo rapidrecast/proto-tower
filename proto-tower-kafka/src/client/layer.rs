@@ -5,7 +5,7 @@ use kafka_protocol::messages::*;
 use kafka_protocol::protocol::buf::ByteBuf;
 use kafka_protocol::protocol::Decodable;
 use paste::paste;
-use proto_tower_util::{BytesMutHelper, WriteTo};
+use proto_tower_util::WriteTo;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::future::Future;
@@ -130,8 +130,10 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut
         eprintln!("Not enough data to read (expecting {} but have {})", sz, buf_mut.len() + 4);
         return Ok(None);
     }
+    eprintln!("Size is: {}", sz);
     let _sz = Buf::try_get_i32(buf_mut).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading size"))?;
-    eprintln!("Reading header: {:?}", buf_mut.safe_peek(0..16).iter().collect::<Vec<_>>());
+    let correlation_id = buf_mut.get(0..4);
+    eprintln!("Reading correlation_id: {:?}", correlation_id);
     let correlation_id = Buf::try_get_i32(&mut buf_mut.peek_bytes(0..4)).map_err(|_| KafkaProtocolError::UnhandledImplementation("Error reading correlation id"))?;
     eprintln!("Correlation id: {}", correlation_id);
     let (api, version) = tracked_requests.remove(&correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation(
@@ -140,7 +142,10 @@ async fn parse_response<E: Debug>(buf_mut: &mut BytesMut, tracked_requests: &mut
     let header_version = api.response_header_version(version);
     eprintln!("Api {:?}, version {}, header version {}", api, version, header_version);
     let _header = ResponseHeader::decode(buf_mut, header_version).map_err(|_| KafkaProtocolError::UnhandledImplementation("Unable to deserialise response header"))?;
-    eprintln!("After reading header: {:?}", buf_mut.peek_bytes(0..16).iter().collect::<Vec<_>>());
+    eprintln!(
+        "After reading header: {:?}",
+        buf_mut.get(0..16).unwrap_or(buf_mut.as_ref()).iter().collect::<Vec<_>>()
+    );
     eprintln!("Decoding response for API: {:?} with version {}", api, version);
     let resp: KafkaResponse = parse_response_internal(api, buf_mut, version)?;
     Ok(Some(resp))

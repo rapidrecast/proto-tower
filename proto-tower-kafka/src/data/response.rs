@@ -91,235 +91,234 @@ pub enum KafkaResponse {
 impl<Writer: tokio::io::AsyncWrite + Send + Unpin + 'static, E: Debug> proto_tower_util::WriteTo<Writer, KafkaProtocolError<E>> for KafkaResponse {
     async fn write_to(&self, writer: &mut Writer) -> Result<(), KafkaProtocolError<E>> {
         let version = 666;
-        let mut buff_mut = BytesMut::new();
         match self {
-            KafkaResponse::ProduceResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ProduceResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::FetchResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::FetchResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ListOffsetsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ListOffsetsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::MetadataResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::MetadataResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::LeaderAndIsrResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::LeaderAndIsrResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::StopReplicaResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::StopReplicaResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::UpdateMetadataResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::UpdateMetadataResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ControlledShutdownResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ControlledShutdownResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::OffsetCommitResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::OffsetCommitResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::OffsetFetchResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::OffsetFetchResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::FindCoordinatorResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::FindCoordinatorResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::JoinGroupResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::JoinGroupResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::HeartbeatResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::HeartbeatResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::LeaveGroupResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::LeaveGroupResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::SyncGroupResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::SyncGroupResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeGroupsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeGroupsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ListGroupsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ListGroupsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::SaslHandshakeResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::SaslHandshakeResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ApiVersionsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ApiVersionsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::CreateTopicsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::CreateTopicsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DeleteTopicsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DeleteTopicsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DeleteRecordsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DeleteRecordsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::InitProducerIdResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::InitProducerIdResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::OffsetForLeaderEpochResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::OffsetForLeaderEpochResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AddPartitionsToTxnResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AddPartitionsToTxnResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AddOffsetsToTxnResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AddOffsetsToTxnResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::EndTxnResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::EndTxnResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::WriteTxnMarkersResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::WriteTxnMarkersResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::TxnOffsetCommitResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::TxnOffsetCommitResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeAclsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeAclsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::CreateAclsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::CreateAclsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DeleteAclsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DeleteAclsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeConfigsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeConfigsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AlterConfigsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AlterConfigsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AlterReplicaLogDirsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AlterReplicaLogDirsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeLogDirsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeLogDirsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::SaslAuthenticateResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::SaslAuthenticateResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::CreatePartitionsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::CreatePartitionsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::CreateDelegationTokenResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::CreateDelegationTokenResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::RenewDelegationTokenResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::RenewDelegationTokenResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ExpireDelegationTokenResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ExpireDelegationTokenResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeDelegationTokenResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeDelegationTokenResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DeleteGroupsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DeleteGroupsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ElectLeadersResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ElectLeadersResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::IncrementalAlterConfigsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::IncrementalAlterConfigsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AlterPartitionReassignmentsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AlterPartitionReassignmentsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ListPartitionReassignmentsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ListPartitionReassignmentsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::OffsetDeleteResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::OffsetDeleteResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeClientQuotasResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeClientQuotasResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AlterClientQuotasResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AlterClientQuotasResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeUserScramCredentialsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeUserScramCredentialsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AlterUserScramCredentialsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AlterUserScramCredentialsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::VoteResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::VoteResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::BeginQuorumEpochResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::BeginQuorumEpochResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::EndQuorumEpochResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::EndQuorumEpochResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeQuorumResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeQuorumResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AlterPartitionResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AlterPartitionResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::UpdateFeaturesResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::UpdateFeaturesResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::EnvelopeResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::EnvelopeResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::FetchSnapshotResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::FetchSnapshotResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeClusterResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeClusterResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeProducersResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeProducersResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::BrokerRegistrationResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::BrokerRegistrationResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::BrokerHeartbeatResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::BrokerHeartbeatResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::UnregisterBrokerResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::UnregisterBrokerResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeTransactionsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeTransactionsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ListTransactionsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ListTransactionsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AllocateProducerIdsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AllocateProducerIdsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ConsumerGroupHeartbeatResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ConsumerGroupHeartbeatResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ConsumerGroupDescribeResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ConsumerGroupDescribeResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ControllerRegistrationResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ControllerRegistrationResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::GetTelemetrySubscriptionsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::GetTelemetrySubscriptionsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::PushTelemetryResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::PushTelemetryResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::AssignReplicasToDirsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::AssignReplicasToDirsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::ListClientMetricsResourcesResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::ListClientMetricsResourcesResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
-            KafkaResponse::DescribeTopicPartitionsResponse(_correlation_id, inner) => {
-                encode_and_write_response!(inner, buff_mut, writer, version)
+            KafkaResponse::DescribeTopicPartitionsResponse(correlation_id, inner) => {
+                encode_and_write_response!(correlation_id, inner, writer, version)
             }
         }
     }

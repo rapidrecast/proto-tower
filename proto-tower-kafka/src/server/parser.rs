@@ -6,7 +6,11 @@ use kafka_protocol::protocol::Decodable;
 use std::task::Poll;
 
 /// Not a future, but is noop if there is not enough data (ie Poll::Pending)
+/// TODO we need the header request in response to retain protocol info (api header and data versions + correlation_id)
 pub fn parse_kafka_request<B: ByteBuf>(buff: &mut B) -> Poll<Result<(RequestHeader, KafkaRequest), String>> {
+    if buff.remaining() < 4 {
+        return Poll::Pending;
+    }
     let size = Buf::try_get_i32(&mut buff.peek_bytes(0..4)).map_err(|e| format!("Size failed: {}", e))? as usize;
     if buff.remaining() < size + 4 {
         return Poll::Pending;

@@ -19,18 +19,26 @@ pub enum KafkaProtocolError<E: Debug> {
 
 #[macro_export]
 macro_rules! encode_and_write_response {
-    ($inner:ident, $buff_mut:ident, $writer:ident, $version:ident) => {{
+    ($correlation_id:expr, $inner:ident, $writer:ident, $version:ident) => {{
+        let mut buff_mut = BytesMut::new();
+        // Produce the header
+        let header = ResponseHeader::default().with_correlation_id(*$correlation_id);
+        header
+            .encode(&mut buff_mut, $version)
+            .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response header encode failure"))?;
+        // Produce the response
         $inner
-            .encode(&mut $buff_mut, $version)
+            .encode(&mut buff_mut, $version)
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response encode failure"))?;
-        let sz = $buff_mut.len() as i32;
+        let sz = buff_mut.len() as i32;
         let sz_bytes: [u8; 4] = sz.to_be_bytes();
         $writer
             .write_all(&sz_bytes)
             .await
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response size write failure"))?;
+        // Write the entire response
         $writer
-            .write_all(&$buff_mut)
+            .write_all(&buff_mut)
             .await
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response payload write failure"))?;
         Ok(())
