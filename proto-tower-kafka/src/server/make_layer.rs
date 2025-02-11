@@ -1,4 +1,4 @@
-use crate::data::{KafkaRequest, KafkaResponse};
+use crate::data::inner_response::{TrackedKafkaRequest, TrackedKafkaResponse};
 use crate::server::layer::ProtoKafkaServerLayer;
 use crate::server::KafkaProtoServerConfig;
 use std::marker::PhantomData;
@@ -10,7 +10,7 @@ use tower::{Layer, Service};
 /// the full lifetime.
 pub struct ProtoKafkaServerMakeLayer<SERVICE>
 where
-    SERVICE: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = ()> + Send + Clone,
+    SERVICE: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
     phantom_data: PhantomData<SERVICE>,
     config: KafkaProtoServerConfig,
@@ -18,7 +18,7 @@ where
 
 impl<SERVICE> ProtoKafkaServerMakeLayer<SERVICE>
 where
-    SERVICE: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = ()> + Send + Clone,
+    SERVICE: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the layer
     pub fn new(config: KafkaProtoServerConfig) -> Self {
@@ -31,7 +31,7 @@ where
 
 impl<SERVICE> Layer<SERVICE> for ProtoKafkaServerMakeLayer<SERVICE>
 where
-    SERVICE: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = ()> + Send + Clone,
+    SERVICE: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
     type Service = ProtoKafkaServerLayer<SERVICE>;
 

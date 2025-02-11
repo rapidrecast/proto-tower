@@ -47,7 +47,6 @@ async fn test_client_raw() {
     let ((rx_svc, sx_svc), (mut rx, sx)) = proto_tower_util::sx_rx_chans();
     let task = tokio::spawn(service.call((rx_svc, sx_svc)));
     sx.send(KafkaRequest::ApiVersionsRequest(
-        1,
         ApiVersionsRequest::default()
             .with_client_software_name("test-client".into())
             .with_client_software_version("1.2.3".into()),

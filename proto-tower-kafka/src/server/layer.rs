@@ -1,10 +1,12 @@
-use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
+use crate::data::inner_response::{TrackedKafkaRequest, TrackedKafkaResponse};
+use crate::data::KafkaProtocolError;
 use crate::server::parser::parse_kafka_request;
 use crate::server::KafkaProtoServerConfig;
 use bytes::{Buf, BytesMut};
 use kafka_protocol::protocol::buf::ByteBuf;
 use proto_tower_util::debug::debug_hex;
 use proto_tower_util::{CountOrDuration, TimeoutCounter, WriteTo};
+use std::collections::BTreeMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -18,7 +20,7 @@ use tower::Service;
 #[derive(Debug, Clone)]
 pub struct ProtoKafkaServerLayer<Svc>
 where
-    Svc: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = ()> + Send + Clone,
+    Svc: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
     config: KafkaProtoServerConfig,
     /// The inner service to process requests
@@ -27,7 +29,7 @@ where
 
 impl<Svc> ProtoKafkaServerLayer<Svc>
 where
-    Svc: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = ()> + Send + Clone,
+    Svc: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the service
     pub fn new(config: KafkaProtoServerConfig, inner: Svc) -> Self {
@@ -39,7 +41,7 @@ impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoK
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
-    Svc: Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>), Response = (), Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
+    Svc: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = (), Error = SvcError, Future = SvcFut> + Send + Clone + 'static,
     SvcFut: Future<Output = Result<(), SvcError>> + Send + 'static,
     SvcError: std::fmt::Debug + Send + 'static,
 {
@@ -59,15 +61,13 @@ where
         let mut service = self.inner.clone();
         let config = self.config.clone();
         Box::pin(async move {
-            // Buffer readers and writers
-            // let mut reader = BufReader::new(reader);
-            // let mut writer = BufWriter::new(writer);
-
             // Start the downstream call
-            let (svc_sx, mut downstream_rx) = tokio::sync::mpsc::channel::<KafkaResponse>(1024);
-            let (downstream_sx, svc_rx) = tokio::sync::mpsc::channel::<KafkaRequest>(1024);
+            let (svc_sx, mut downstream_rx) = tokio::sync::mpsc::channel::<TrackedKafkaResponse>(1024);
+            let (downstream_sx, svc_rx) = tokio::sync::mpsc::channel::<TrackedKafkaRequest>(1024);
             let svc_fut = tokio::spawn(service.call((svc_rx, svc_sx)));
 
+            // Track correlation_id to api_version
+            let mut tracked_requests = BTreeMap::<i32, i16>::new();
             let mut inbound_read_buffer = BytesMut::new();
             let mut inbound_read_temp_buffer = [0u8; 1024];
             let inbound_timeout = TimeoutCounter::new(CountOrDuration::Count(10), CountOrDuration::Duration(config.timeout));
@@ -81,6 +81,8 @@ where
                             }
                             Some(resp) => {
                                 eprintln!("Sending response: {:?}", resp);
+                                let api_version = tracked_requests.remove(&resp.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation("Received message with unmatched correlation_id"))?;
+                                let resp = resp.into_inner(api_version);
                                 resp.write_to(&mut input_writer).await?;
                             }
                         }
@@ -99,11 +101,12 @@ where
                                 eprintln!("Before check\n{}", debug_hex(&inbound_read_buffer));
                                 if let Some(mut mut_buf) = check_valid_packet(&mut inbound_read_buffer) {
                                     eprintln!("After check\n{}", debug_hex(&mut_buf));
-                                    let res = parse_kafka_request(&mut mut_buf);
+                                    let res = parse_kafka_request(&mut mut_buf, &mut tracked_requests);
                                     match res {
                                         Ready(resp) => {
                                             match resp {
-                                                Ok((_header, resp)) => {
+                                                Ok((header, resp)) => {
+                                                    let resp = TrackedKafkaRequest{correlation_id: header.correlation_id,request: resp};
                                                     // TODO we should retain protocol info from the header
                                                     if let Err(_) = downstream_sx.send(resp.clone()).await {
                                                         return Err(KafkaProtocolError::InternalServiceClosed);

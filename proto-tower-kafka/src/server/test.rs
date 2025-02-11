@@ -1,4 +1,5 @@
-use crate::data::{KafkaRequest, KafkaResponse, ProtoInfo};
+use crate::data::inner_response::{TrackedKafkaRequest, TrackedKafkaResponse};
+use crate::data::{KafkaRequest, KafkaResponse};
 use crate::server::make_layer::ProtoKafkaServerMakeLayer;
 use crate::server::KafkaProtoServerConfig;
 use bytes::BytesMut;
@@ -42,12 +43,14 @@ async fn test_rdkafka() {
     let requests = kafka_service.requests.lock().await;
     assert_eq!(
         *requests,
-        vec![KafkaRequest::ApiVersionsRequest(
-            1,
-            ApiVersionsRequest::default()
-                .with_client_software_version(StrBytes::from("2.3.0"))
-                .with_client_software_name(StrBytes::from("librdkafka"))
-        )]
+        vec![TrackedKafkaRequest {
+            correlation_id: 1,
+            request: KafkaRequest::ApiVersionsRequest(
+                ApiVersionsRequest::default()
+                    .with_client_software_version(StrBytes::from("2.3.0"))
+                    .with_client_software_name(StrBytes::from("librdkafka"))
+            ),
+        },]
     );
     let responses = kafka_service.responses.lock().await;
     assert_eq!(responses.len(), 0);
@@ -56,13 +59,10 @@ async fn test_rdkafka() {
 
 #[tokio::test]
 async fn test_raw() {
-    let mock_kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(
-        ProtoInfo {
-            correlation_id: 1,
-            api_version: 3,
-        },
-        ApiVersionsResponse::default(),
-    )]);
+    let mock_kafka_service = MockKafkaService::new(vec![TrackedKafkaResponse {
+        correlation_id: 1,
+        response: KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default()),
+    }]);
     let mut kafka_service = ServiceBuilder::new()
         .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(2000),
@@ -96,13 +96,10 @@ async fn bind_and_serve(port: Option<u16>) -> (JoinHandle<()>, u16, MockKafkaSer
     let port = port.unwrap_or_default();
     let listener = TcpListener::bind(("0.0.0.0", port)).await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let kafka_service = MockKafkaService::new(vec![KafkaResponse::ApiVersionsResponse(
-        ProtoInfo {
-            correlation_id: 1,
-            api_version: 3,
-        },
-        ApiVersionsResponse::default(),
-    )]);
+    let kafka_service = MockKafkaService::new(vec![TrackedKafkaResponse {
+        correlation_id: 1,
+        response: KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default()),
+    }]);
     let inner_kafka_service = kafka_service.clone();
     let task = tokio::spawn(async move {
         let (stream, _addr) = listener.accept().await.unwrap();
@@ -119,11 +116,11 @@ async fn bind_and_serve(port: Option<u16>) -> (JoinHandle<()>, u16, MockKafkaSer
 
 #[derive(Clone)]
 pub struct MockKafkaService {
-    requests: Arc<Mutex<Vec<KafkaRequest>>>,
-    responses: Arc<Mutex<Vec<KafkaResponse>>>,
+    requests: Arc<Mutex<Vec<TrackedKafkaRequest>>>,
+    responses: Arc<Mutex<Vec<TrackedKafkaResponse>>>,
 }
 
-impl Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for MockKafkaService {
+impl Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>)> for MockKafkaService {
     type Response = ();
     type Error = ();
     type Future = Pin<Box<dyn Future<Output = Result<(), ()>> + Send>>;
@@ -132,22 +129,22 @@ impl Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for MockKafkaServi
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, (receiver, sender): (Receiver<KafkaRequest>, Sender<KafkaResponse>)) -> Self::Future {
+    fn call(&mut self, (receiver, sender): (Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>)) -> Self::Future {
         Box::pin(Self::inner_call((receiver, sender), self.requests.clone(), self.responses.clone()))
     }
 }
 
 impl MockKafkaService {
-    pub fn new(responses: Vec<KafkaResponse>) -> Self {
+    pub fn new(responses: Vec<TrackedKafkaResponse>) -> Self {
         MockKafkaService {
             requests: Arc::new(Mutex::new(Vec::new())),
             responses: Arc::new(Mutex::new(responses)),
         }
     }
     async fn inner_call(
-        (mut receiver, sender): (Receiver<KafkaRequest>, Sender<KafkaResponse>),
-        requests: Arc<Mutex<Vec<KafkaRequest>>>,
-        responses: Arc<Mutex<Vec<KafkaResponse>>>,
+        (mut receiver, sender): (Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>),
+        requests: Arc<Mutex<Vec<TrackedKafkaRequest>>>,
+        responses: Arc<Mutex<Vec<TrackedKafkaResponse>>>,
     ) -> Result<(), ()> {
         while let Some(request) = receiver.recv().await {
             let mut requests_lock = requests.lock().await;

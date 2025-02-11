@@ -1,12 +1,22 @@
 mod header;
+pub mod inner_response;
 mod request;
 mod response;
 
+#[allow(unused_imports)]
+use bytes::BytesMut;
 pub use header::ResponseHeaderComplete;
 pub use header::ResponseHeaderIntermediary;
+pub use inner_response::*;
+#[allow(unused_imports)]
+use kafka_protocol::messages::ResponseHeader;
+#[allow(unused_imports)]
+use kafka_protocol::protocol::Encodable;
 pub use request::KafkaRequest;
 pub use response::KafkaResponse;
 pub use response::ProtoInfo;
+#[allow(unused_imports)]
+use tokio::io::AsyncWriteExt;
 
 use std::fmt::Debug;
 
@@ -22,6 +32,7 @@ pub enum KafkaProtocolError<E: Debug> {
 macro_rules! encode_and_write_response {
     ($proto_info:expr, $inner:ident, $writer:ident) => {{
         let mut buff_mut = BytesMut::new();
+
         // Produce the header
         let (correlation_id, version) = ($proto_info.correlation_id, $proto_info.api_version);
         let header = ResponseHeader::default().with_correlation_id(correlation_id);
@@ -58,7 +69,7 @@ macro_rules! encode_and_write_request {
         let header = RequestHeader::default()
             .with_request_api_key(key)
             .with_request_api_version($version)
-            .with_correlation_id(*$correlation)
+            .with_correlation_id($correlation)
             .with_client_id($client_id.map(|x| x.into()));
 
         header

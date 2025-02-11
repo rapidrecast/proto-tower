@@ -1,5 +1,5 @@
 use crate::client::KafkaProtoClientConfig;
-use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse, ProtoInfo};
+use crate::data::{KafkaProtocolError, KafkaRequest, KafkaResponse};
 use bytes::{Buf, BytesMut};
 use kafka_protocol::messages::*;
 use kafka_protocol::protocol::buf::ByteBuf;
@@ -81,7 +81,7 @@ where
                                 next_correlation_id += 1;
                                 let version = 3;
                                 tracked_requests.insert(correlation_id, (req.api_key(), version));
-                                req.into_full(version, config.client_id.clone()).write_to(&mut write).await?;
+                                req.into_full(version, correlation_id, config.client_id.clone()).write_to(&mut write).await?;
                             }
                         }
                     }
@@ -161,11 +161,9 @@ macro_rules! handle_api_match {
         match $api {
             $(
                 ApiKey::$api_key => {
-                    let api_version = 0;
-                    let correlation_id = 0;
                     paste! {
                     [<$api_key Response>]::decode(&mut $buf_mut, $version)
-                        .map(|r| KafkaResponse::[<$api_key Response>](ProtoInfo{correlation_id, api_version}, r))
+                        .map(KafkaResponse::[<$api_key Response>])
                         .map_err(|e| {
                             eprintln!("Error decoding response: {:?}", e);
                             KafkaProtocolError::UnhandledImplementation(concat!("Error decoding ", stringify!($api_key), " response"))
