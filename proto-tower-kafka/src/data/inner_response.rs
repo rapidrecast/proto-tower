@@ -27,6 +27,7 @@ impl TrackedKafkaResponse {
     pub fn into_inner(self, api_version: i16) -> InnerKafkaResponse {
         InnerKafkaResponse {
             correlation_id: self.correlation_id,
+            header_version: self.response.api_key().response_header_version(api_version),
             api_version,
             response: self.response,
         }
@@ -36,6 +37,7 @@ impl TrackedKafkaResponse {
 #[derive(Debug, Clone)]
 pub struct InnerKafkaResponse {
     correlation_id: i32,
+    header_version: i16,
     api_version: i16,
     response: KafkaResponse,
 }
@@ -45,6 +47,7 @@ impl<Writer: tokio::io::AsyncWrite + Send + Unpin + 'static, E: Debug> proto_tow
     async fn write_to(&self, writer: &mut Writer) -> Result<(), KafkaProtocolError<E>> {
         let proto_info = ProtoInfo {
             correlation_id: self.correlation_id,
+            header_version: self.header_version,
             api_version: self.api_version,
         };
         match &self.response {

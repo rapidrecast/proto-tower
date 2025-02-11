@@ -98,9 +98,7 @@ where
                             Ok(sz) => {
                                 inbound_timeout.reset();
                                 inbound_read_buffer.extend_from_slice(&inbound_read_temp_buffer[..sz]);
-                                eprintln!("Before check\n{}", debug_hex(&inbound_read_buffer));
                                 if let Some(mut mut_buf) = check_valid_packet(&mut inbound_read_buffer) {
-                                    eprintln!("After check\n{}", debug_hex(&mut_buf));
                                     let res = parse_kafka_request(&mut mut_buf, &mut tracked_requests);
                                     match res {
                                         Ready(resp) => {

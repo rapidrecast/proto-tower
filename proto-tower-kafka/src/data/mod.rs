@@ -34,15 +34,14 @@ macro_rules! encode_and_write_response {
         let mut buff_mut = BytesMut::new();
 
         // Produce the header
-        let (correlation_id, version) = ($proto_info.correlation_id, $proto_info.api_version);
+        let (correlation_id, header_version, api_version) = ($proto_info.correlation_id, $proto_info.api_version, $proto_info.header_version);
         let header = ResponseHeader::default().with_correlation_id(correlation_id);
-        // TODO: header version?
         header
-            .encode(&mut buff_mut, version)
+            .encode(&mut buff_mut, header_version)
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response header encode failure"))?;
         // Produce the response
         $inner
-            .encode(&mut buff_mut, version)
+            .encode(&mut buff_mut, api_version)
             .map_err(|_| KafkaProtocolError::UnhandledImplementation("Response encode failure"))?;
         let sz = buff_mut.len() as i32;
         let sz_bytes: [u8; 4] = sz.to_be_bytes();
