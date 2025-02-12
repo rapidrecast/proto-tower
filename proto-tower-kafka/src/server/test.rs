@@ -3,7 +3,8 @@ use crate::data::{KafkaRequest, KafkaResponse};
 use crate::server::make_layer::ProtoKafkaServerMakeLayer;
 use crate::server::{all_api_versions, KafkaProtoServerConfig};
 use bytes::BytesMut;
-use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse};
+use kafka_protocol::messages::metadata_response::MetadataResponseBroker;
+use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse, MetadataResponse};
 use kafka_protocol::protocol::{Decodable, StrBytes};
 use proto_tower_util::debug::debug_hex;
 use proto_tower_util::{AsyncReadToBuf, ZeroReadBehaviour};
@@ -23,7 +24,19 @@ use tower::{Service, ServiceBuilder};
 
 #[tokio::test]
 async fn test_rdkafka() {
-    let (task, port, kafka_service) = bind_and_serve(BindPort::UsingPort(39092)).await;
+    let kafka_service = MockKafkaService::new(vec![
+        TrackedKafkaResponse {
+            correlation_id: 1,
+            response: KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default().with_api_keys(all_api_versions())),
+        },
+        TrackedKafkaResponse {
+            correlation_id: 2,
+            response: KafkaResponse::MetadataResponse(
+                MetadataResponse::default().with_brokers(vec![MetadataResponseBroker::default().with_host(StrBytes::from("localhost")).with_port(39092)]),
+            ),
+        },
+    ]);
+    let (task, port) = bind_and_serve(BindPort::UsingPort(39092), kafka_service.clone()).await;
     // let port = 29092;
     let producer: FutureProducer = rdkafka::config::ClientConfig::new()
         .set("bootstrap.servers", format!("localhost:{port}"))
@@ -98,7 +111,7 @@ enum BindPort {
     RandomPort,
 }
 
-async fn bind_and_serve(bind_port: BindPort) -> (JoinHandle<()>, u16, MockKafkaService) {
+async fn bind_and_serve(bind_port: BindPort, kafka_service: MockKafkaService) -> (JoinHandle<()>, u16) {
     let desired_port = match bind_port {
         BindPort::UsingDockerInstead(d) => d,
         BindPort::UsingPort(d) => d,
@@ -109,11 +122,6 @@ async fn bind_and_serve(bind_port: BindPort) -> (JoinHandle<()>, u16, MockKafkaS
         BindPort::UsingPort(_) | BindPort::RandomPort => Some(TcpListener::bind(("0.0.0.0", desired_port)).await.unwrap()),
     };
     let bound_port = listener.as_ref().map(|l| l.local_addr().unwrap().port());
-    let kafka_service = MockKafkaService::new(vec![TrackedKafkaResponse {
-        correlation_id: 1,
-        response: KafkaResponse::ApiVersionsResponse(ApiVersionsResponse::default().with_api_keys(all_api_versions())),
-    }]);
-    let inner_kafka_service = kafka_service.clone();
     let task = tokio::spawn(async move {
         match listener {
             None => loop {
@@ -126,12 +134,12 @@ async fn bind_and_serve(bind_port: BindPort) -> (JoinHandle<()>, u16, MockKafkaS
                     .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
                         timeout: Duration::from_millis(2000),
                     }))
-                    .service(inner_kafka_service);
+                    .service(kafka_service);
                 svc.call((read, write)).await.unwrap();
             }
         }
     });
-    (task, bound_port.unwrap_or(desired_port), kafka_service)
+    (task, bound_port.unwrap_or(desired_port))
 }
 
 #[derive(Clone)]

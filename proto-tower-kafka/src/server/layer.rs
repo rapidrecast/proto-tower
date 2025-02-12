@@ -80,8 +80,9 @@ where
                                 return Err(KafkaProtocolError::InternalServiceClosed);
                             }
                             Some(resp) => {
-                                eprintln!("Sending response: {:?}", resp);
+                                eprintln!("Tracked_requests: {:?}", tracked_requests);
                                 let api_version = tracked_requests.remove(&resp.correlation_id).ok_or(KafkaProtocolError::UnhandledImplementation("Received message with unmatched correlation_id"))?;
+                                eprintln!("Sending response: {:?}", resp);
                                 let resp = resp.into_inner(api_version);
                                 resp.write_to(&mut input_writer).await?;
                             }
