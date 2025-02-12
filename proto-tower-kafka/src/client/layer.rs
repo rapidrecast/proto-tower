@@ -18,7 +18,7 @@ use tokio::sync::mpsc::Sender;
 use tower::Service;
 
 #[derive(Clone)]
-pub struct ProtoKafkaClientLayer<Svc, E>
+pub struct ProtoKafkaClientService<Svc, E>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
@@ -27,17 +27,17 @@ where
     config: KafkaProtoClientConfig,
 }
 
-impl<Svc, E> ProtoKafkaClientLayer<Svc, E>
+impl<Svc, E> ProtoKafkaClientService<Svc, E>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E> + Send + Clone + 'static,
     E: Debug + Send + 'static,
 {
     pub fn new(inner: Svc, config: KafkaProtoClientConfig) -> Self {
-        ProtoKafkaClientLayer { inner, config }
+        ProtoKafkaClientService { inner, config }
     }
 }
 
-impl<Svc, E, SvcFut> Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for ProtoKafkaClientLayer<Svc, E>
+impl<Svc, E, SvcFut> Service<(Receiver<KafkaRequest>, Sender<KafkaResponse>)> for ProtoKafkaClientService<Svc, E>
 where
     Svc: Service<(ReadHalf<SimplexStream>, WriteHalf<SimplexStream>), Response = (), Error = E, Future = SvcFut> + Send + Clone + 'static,
     SvcFut: Future<Output = Result<(), E>> + Send + 'static,
@@ -110,13 +110,21 @@ where
                     }
                     _ = tokio::time::sleep(config.timeout) => {
                         eprintln!("Client timeout");
-                        return Err(KafkaProtocolError::UnhandledImplementation("Client Timeout"));
+                        if config.fail_on_inactivity {
+                            return Err(KafkaProtocolError::UnhandledImplementation("Client Timeout"));
+                        } else {
+                            break;
+                        }
                     }
                 );
                 if task.is_finished() {
                     break;
                 }
             }
+            drop(write);
+            drop(read);
+            drop(rx_chan);
+            drop(sx_chan);
             eprintln!("Client loop finished");
             task.await
                 .map_err(|_| KafkaProtocolError::InternalServiceClosed)?

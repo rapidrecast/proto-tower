@@ -1,4 +1,4 @@
-use crate::client::make_layer::ProtoKafkaClientMakeLayer;
+use crate::client::make_layer::ProtoKafkaClientLayer;
 use crate::client::KafkaProtoClientConfig;
 use crate::data::KafkaRequest;
 use kafka_protocol::messages::ApiVersionsRequest;
@@ -32,14 +32,11 @@ const API_VERSIONS_RESPONSE_RAW: &[u8] = &[
 
 #[tokio::test]
 async fn test_client_raw() {
-    let raw_i32 = 1_056_964_608i32;
-    let la_data: [u8; 4] = raw_i32.to_le_bytes();
-    eprintln!("la_data: {:?}", la_data);
-    // assert_eq!(la_data, [0x01, 0x00, 0x00, 0x3f]);
     let test_net = TestIoService::new(Vec::from(API_VERSIONS_RESPONSE_RAW));
     let mut service = ServiceBuilder::default()
-        .layer(ProtoKafkaClientMakeLayer::new(KafkaProtoClientConfig {
+        .layer(ProtoKafkaClientLayer::new(KafkaProtoClientConfig {
             timeout: Default::default(),
+            fail_on_inactivity: false,
             client_id: None,
         }))
         .service(test_net.clone());

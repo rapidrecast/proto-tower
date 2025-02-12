@@ -1,7 +1,7 @@
-use crate::client::make_layer::ProtoKafkaClientMakeLayer;
+use crate::client::make_layer::ProtoKafkaClientLayer;
 use crate::client::KafkaProtoClientConfig;
 use crate::data::{KafkaRequest, KafkaResponse, TrackedKafkaResponse};
-use crate::server::make_layer::ProtoKafkaServerMakeLayer;
+use crate::server::make_layer::ProtoKafkaServerLayer;
 use crate::server::test::MockKafkaService;
 use crate::server::KafkaProtoServerConfig;
 use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse};
@@ -12,12 +12,13 @@ use tower::{Service, ServiceBuilder};
 #[tokio::test]
 async fn test_client() {
     let mut client = ServiceBuilder::new()
-        .layer(ProtoKafkaClientMakeLayer::new(KafkaProtoClientConfig {
+        .layer(ProtoKafkaClientLayer::new(KafkaProtoClientConfig {
             timeout: Duration::from_millis(2000),
+            fail_on_inactivity: false,
             client_id: None,
         }))
         .layer(proto_tower_util::DebugIoLayer {})
-        .layer(ProtoKafkaServerMakeLayer::new(KafkaProtoServerConfig {
+        .layer(ProtoKafkaServerLayer::new(KafkaProtoServerConfig {
             timeout: Duration::from_millis(200),
         }))
         .service(MockKafkaService::new(vec![TrackedKafkaResponse {
@@ -37,7 +38,9 @@ async fn test_client() {
         .unwrap();
     // Set some value that is incorrect but we will change
     let res = tokio::time::timeout(Duration::from_secs(3), read.recv()).await.unwrap();
-    task.await.unwrap().unwrap();
+    let task = tokio::time::timeout(Duration::from_secs(3), task).await.unwrap();
+    let task = task.unwrap();
+    task.unwrap();
     let res = res.unwrap();
 
     drop(write);

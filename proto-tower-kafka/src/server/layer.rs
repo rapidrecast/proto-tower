@@ -18,7 +18,7 @@ use tower::Service;
 ///
 /// This should not be constructed directly - it gets created by MakeService during invocation.
 #[derive(Debug, Clone)]
-pub struct ProtoKafkaServerLayer<Svc>
+pub struct ProtoKafkaServerService<Svc>
 where
     Svc: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
@@ -27,17 +27,17 @@ where
     inner: Svc,
 }
 
-impl<Svc> ProtoKafkaServerLayer<Svc>
+impl<Svc> ProtoKafkaServerService<Svc>
 where
     Svc: Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>), Response = ()> + Send + Clone,
 {
     /// Create a new instance of the service
     pub fn new(config: KafkaProtoServerConfig, inner: Svc) -> Self {
-        ProtoKafkaServerLayer { config, inner }
+        ProtoKafkaServerService { config, inner }
     }
 }
 
-impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoKafkaServerLayer<Svc>
+impl<Reader, Writer, Svc, SvcError, SvcFut> Service<(Reader, Writer)> for ProtoKafkaServerService<Svc>
 where
     Reader: AsyncReadExt + Send + Unpin + 'static,
     Writer: AsyncWriteExt + Send + Unpin + 'static,
@@ -131,6 +131,7 @@ where
                         }
                     }
                     e = inbound_timeout.next_timeout() => {
+                        svc_fut.abort();
                         e.map_err(|_| KafkaProtocolError::Timeout)?;
                     }
                 }
