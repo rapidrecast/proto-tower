@@ -165,7 +165,7 @@ macro_rules! handle_api_match {
                     [<$api_key Response>]::decode(&mut $buf_mut, $version)
                         .map(KafkaResponse::[<$api_key Response>])
                         .map_err(|e| {
-                            eprintln!("Error decoding response: {:?}", e);
+                            eprintln!("Error decoding {} response: {:?}", stringify!($api_key), e);
                             KafkaProtocolError::UnhandledImplementation(concat!("Error decoding ", stringify!($api_key), " response"))
                         })?
                     }

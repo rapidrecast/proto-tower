@@ -1,3 +1,4 @@
+use crate::data::TrackedKafkaResponse;
 use kafka_protocol::messages::*;
 use std::fmt::Debug;
 
@@ -168,5 +169,9 @@ impl KafkaResponse {
             KafkaResponse::ListClientMetricsResourcesResponse(_) => ApiKey::ListClientMetricsResources,
             KafkaResponse::DescribeTopicPartitionsResponse(_) => ApiKey::DescribeTopicPartitions,
         }
+    }
+
+    pub fn into_tracked(self, correlation_id: i32) -> TrackedKafkaResponse {
+        TrackedKafkaResponse { correlation_id, response: self }
     }
 }

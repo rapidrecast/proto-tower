@@ -34,7 +34,7 @@ macro_rules! encode_and_write_response {
         let mut buff_mut = BytesMut::new();
 
         // Produce the header
-        let (correlation_id, header_version, api_version) = ($proto_info.correlation_id, $proto_info.api_version, $proto_info.header_version);
+        let (correlation_id, header_version, api_version) = ($proto_info.correlation_id, $proto_info.header_version, $proto_info.api_version);
         let header = ResponseHeader::default().with_correlation_id(correlation_id);
         header
             .encode(&mut buff_mut, header_version)
