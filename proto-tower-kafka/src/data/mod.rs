@@ -26,6 +26,7 @@ pub enum KafkaProtocolError<E: Debug> {
     InternalServiceError(E),
     InternalServiceClosed,
     Timeout,
+    DoubleError(Box<KafkaProtocolError<E>>, Box<KafkaProtocolError<E>>),
 }
 
 #[macro_export]

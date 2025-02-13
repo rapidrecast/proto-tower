@@ -2,7 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::io::{simplex, AsyncReadExt, AsyncWriteExt, ReadHalf, SimplexStream, WriteHalf};
-use tokio::task::JoinHandle;
+use tokio::task::{JoinError, JoinHandle};
 use tower::{Layer, Service};
 
 const MAX_BUF_SIZE: usize = 1024;
@@ -94,13 +94,25 @@ where
                     break;
                 }
             }
+            eprintln!("{} Going into shutdown", IDENTIFIER);
             drop(input_reader);
             drop(input_writer);
             drop(read_this);
             drop(write_this);
 
             // Let's politely wait for the task to complete in case it has errored
-            task.await.unwrap()
+            match task.await {
+                Ok(s) => {
+                    eprintln!("{} Task completed", IDENTIFIER);
+                    s
+                }
+                Err(e) => {
+                    eprintln!("{} Task failed: {:?}", IDENTIFIER, e);
+                    let r: Result<(), JoinError> = Err(e);
+                    r.unwrap();
+                    unreachable!("We just unwrapped a known error");
+                }
+            }
         })
     }
 }

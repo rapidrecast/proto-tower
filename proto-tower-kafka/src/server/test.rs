@@ -7,6 +7,7 @@ use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse, Metadata
 use kafka_protocol::protocol::StrBytes;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::Timeout;
+use std::collections::VecDeque;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -32,7 +33,7 @@ async fn test_rdkafka() {
             ),
         },
     ]);
-    let (task, port) = bind_and_serve(BindPort::UsingPort(39092), kafka_service.clone()).await;
+    let (task, port) = bind_and_serve(BindPort::RandomPort, kafka_service.clone()).await;
     // let port = 29092;
     let producer: FutureProducer = rdkafka::config::ClientConfig::new()
         .set("bootstrap.servers", format!("localhost:{port}"))
@@ -106,7 +107,7 @@ async fn bind_and_serve(bind_port: BindPort, kafka_service: MockKafkaService) ->
 #[derive(Clone)]
 pub struct MockKafkaService {
     requests: Arc<Mutex<Vec<TrackedKafkaRequest>>>,
-    responses: Arc<Mutex<Vec<TrackedKafkaResponse>>>,
+    responses: Arc<Mutex<VecDeque<TrackedKafkaResponse>>>,
 }
 
 impl Service<(Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>)> for MockKafkaService {
@@ -127,26 +128,31 @@ impl MockKafkaService {
     pub fn new(responses: Vec<TrackedKafkaResponse>) -> Self {
         MockKafkaService {
             requests: Arc::new(Mutex::new(Vec::new())),
-            responses: Arc::new(Mutex::new(responses)),
+            responses: Arc::new(Mutex::new(VecDeque::from(responses))),
         }
     }
     async fn inner_call(
         (mut receiver, sender): (Receiver<TrackedKafkaRequest>, Sender<TrackedKafkaResponse>),
         requests: Arc<Mutex<Vec<TrackedKafkaRequest>>>,
-        responses: Arc<Mutex<Vec<TrackedKafkaResponse>>>,
+        responses: Arc<Mutex<VecDeque<TrackedKafkaResponse>>>,
     ) -> Result<(), ()> {
+        eprintln!("Waiting for next message in MockKafkaService");
         while let Some(request) = receiver.recv().await {
+            eprintln!("Received request in MockKafkaService: {:?}", request);
             {
                 let mut requests_lock = requests.lock().await;
                 requests_lock.push(request);
             }
             let mut responses_lock = responses.lock().await;
-            if let Some(response) = responses_lock.pop() {
-                sender.send(response).await.unwrap();
+            if let Some(response) = responses_lock.pop_front() {
+                eprintln!("Sending response from MockKafkaService: {:?}", response);
+                sender.send(response).await.map_err(|_| ())?;
             } else {
                 break;
             }
+            eprintln!("Waiting for next message in MockKafkaService");
         }
+        eprintln!("Done with messages in MockKafkaService");
         Ok(())
     }
 }

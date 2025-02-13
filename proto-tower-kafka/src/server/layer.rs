@@ -94,6 +94,7 @@ where
                             Ok(0) => {
                                 // noop, but might indicate termination
                                 eprintln!("Zero read on kafka server layer");
+                                svc_fut.abort();
                                 return Err(KafkaProtocolError::InternalServiceClosed);
                             }
                             Ok(sz) => {
@@ -108,6 +109,7 @@ where
                                                     let resp = TrackedKafkaRequest{correlation_id: header.correlation_id,request: resp};
                                                     // TODO we should retain protocol info from the header
                                                     if let Err(_) = downstream_sx.send(resp.clone()).await {
+                                                        svc_fut.abort();
                                                         return Err(KafkaProtocolError::InternalServiceClosed);
                                                     }
                                                 }
@@ -126,13 +128,29 @@ where
                             }
                             Err(e) => {
                                 eprintln!("Error reading: {:?}", e);
+                                svc_fut.abort();
                                 return Err(KafkaProtocolError::InternalServiceClosed);
                             }
                         }
                     }
                     e = inbound_timeout.next_timeout() => {
-                        svc_fut.abort();
-                        e.map_err(|_| KafkaProtocolError::Timeout)?;
+                        eprintln!("Server timeout tick");
+                        if e.is_err() {
+                            eprintln!("Server layer timeout: {:?}", e);
+                            drop(downstream_sx);
+                            drop(downstream_rx);
+                            drop(input_writer);
+                            drop(input_reader);
+                            svc_fut.await
+                                .map_err(|_| KafkaProtocolError::DoubleError(
+                                    Box::new(KafkaProtocolError::Timeout),
+                                    Box::new(KafkaProtocolError::UnhandledImplementation("Service failed while trying to shut it down"))))?
+                                .map_err(|e| KafkaProtocolError::DoubleError(
+                                    Box::new(KafkaProtocolError::Timeout),
+                                    Box::new(KafkaProtocolError::InternalServiceError(e))
+                                ))?;
+                            return Err(KafkaProtocolError::Timeout);
+                        }
                     }
                 }
                 if svc_fut.is_finished() {

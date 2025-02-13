@@ -38,12 +38,12 @@ async fn test_client() {
         .unwrap();
     // Set some value that is incorrect but we will change
     let res = tokio::time::timeout(Duration::from_secs(3), read.recv()).await.unwrap();
+    drop(write);
+    drop(read);
     let task = tokio::time::timeout(Duration::from_secs(3), task).await.unwrap();
     let task = task.unwrap();
     task.unwrap();
     let res = res.unwrap();
 
-    drop(write);
-    drop(read);
     assert_eq!(res, KafkaResponse::ApiVersionsResponse(Default::default()));
 }
