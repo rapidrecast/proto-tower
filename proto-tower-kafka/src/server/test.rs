@@ -2,8 +2,10 @@ use crate::data::inner_response::{TrackedKafkaRequest, TrackedKafkaResponse};
 use crate::data::{KafkaRequest, KafkaResponse};
 use crate::server::make_layer::ProtoKafkaServerLayer;
 use crate::server::{all_api_versions, KafkaProtoServerConfig};
-use kafka_protocol::messages::metadata_response::MetadataResponseBroker;
-use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse, MetadataResponse};
+use kafka_protocol::messages::metadata_request::MetadataRequestTopic;
+use kafka_protocol::messages::metadata_response::{MetadataResponseBroker, MetadataResponseTopic};
+use kafka_protocol::messages::produce_response::{PartitionProduceResponse, TopicProduceResponse};
+use kafka_protocol::messages::{ApiVersionsRequest, ApiVersionsResponse, MetadataRequest, MetadataResponse, ProduceResponse, TopicName};
 use kafka_protocol::protocol::StrBytes;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::Timeout;
@@ -29,8 +31,27 @@ async fn test_rdkafka() {
         TrackedKafkaResponse {
             correlation_id: 2,
             response: KafkaResponse::MetadataResponse(
-                MetadataResponse::default().with_brokers(vec![MetadataResponseBroker::default().with_host(StrBytes::from("localhost")).with_port(39092)]),
+                MetadataResponse::default()
+                    .with_brokers(vec![MetadataResponseBroker::default().with_host(StrBytes::from("localhost")).with_port(39092)])
+                    .with_topics(vec![MetadataResponseTopic::default().with_name(Some(TopicName::from(StrBytes::from("my-topic"))))]),
             ),
+        },
+        TrackedKafkaResponse {
+            correlation_id: 3,
+            response: KafkaResponse::MetadataResponse(
+                MetadataResponse::default()
+                    .with_brokers(vec![MetadataResponseBroker::default().with_host(StrBytes::from("localhost")).with_port(39092)])
+                    .with_topics(vec![MetadataResponseTopic::default().with_name(Some(TopicName::from(StrBytes::from("my-topic"))))]),
+            ),
+        },
+        TrackedKafkaResponse {
+            correlation_id: 4,
+            response: KafkaResponse::ProduceResponse(ProduceResponse::default().with_responses(vec![
+                TopicProduceResponse::default().with_name(TopicName::from(StrBytes::from("my-topic"))).with_partition_responses(vec![
+                    PartitionProduceResponse::default().with_base_offset(0)
+                        .with_log_append_time_ms(-1)
+                ]),
+            ])),
         },
     ]);
     let (task, port) = bind_and_serve(BindPort::RandomPort, kafka_service.clone()).await;
@@ -53,14 +74,28 @@ async fn test_rdkafka() {
     let requests = kafka_service.requests.lock().await;
     assert_eq!(
         *requests,
-        vec![TrackedKafkaRequest {
-            correlation_id: 1,
-            request: KafkaRequest::ApiVersionsRequest(
-                ApiVersionsRequest::default()
-                    .with_client_software_version(StrBytes::from("2.3.0"))
-                    .with_client_software_name(StrBytes::from("librdkafka"))
-            ),
-        },]
+        vec![
+            TrackedKafkaRequest {
+                correlation_id: 1,
+                request: KafkaRequest::ApiVersionsRequest(
+                    ApiVersionsRequest::default()
+                        .with_client_software_version(StrBytes::from("2.3.0"))
+                        .with_client_software_name(StrBytes::from("librdkafka"))
+                ),
+            },
+            TrackedKafkaRequest {
+                correlation_id: 2,
+                request: KafkaRequest::MetadataRequest(
+                    MetadataRequest::default().with_topics(Some(vec![MetadataRequestTopic::default().with_name(Some(TopicName(StrBytes::from("my-topic"))))])),
+                ),
+            },
+            TrackedKafkaRequest {
+                correlation_id: 3,
+                request: KafkaRequest::MetadataRequest(
+                    MetadataRequest::default().with_topics(Some(vec![MetadataRequestTopic::default().with_name(Some(TopicName(StrBytes::from("my-topic"))))])),
+                ),
+            },
+        ]
     );
     let responses = kafka_service.responses.lock().await;
     assert_eq!(responses.len(), 0);

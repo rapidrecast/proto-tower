@@ -266,3 +266,53 @@ fn parse_response_internal<E: Debug>(api: ApiKey, mut buf_mut: &mut BytesMut, ve
         DescribeTopicPartitions
     ))
 }
+
+#[cfg(test)]
+mod test {
+    use crate::client::layer::parse_response;
+    use crate::data::{KafkaProtocolError, KafkaResponse};
+    use bytes::BytesMut;
+    use kafka_protocol::messages::metadata_response::{MetadataResponseBroker, MetadataResponsePartition, MetadataResponseTopic};
+    use kafka_protocol::messages::{ApiKey, BrokerId, MetadataResponse, TopicName};
+    use kafka_protocol::protocol::StrBytes;
+    use std::collections::BTreeMap;
+
+    #[tokio::test]
+    async fn test_metadata() {
+        let metadata_response: &[u8] = &[
+            0x00u8, 0x00, 0x00, 0x77, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x0a, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f,
+            0x73, 0x74, 0x00, 0x00, 0x71, 0xa4, 0x00, 0x00, 0x17, 0x71, 0x38, 0x4c, 0x30, 0x6a, 0x4d, 0x70, 0x52, 0x54, 0x41, 0x61, 0x5f, 0x4c, 0x4f, 0x49, 0x74, 0x4e,
+            0x62, 0x4d, 0x56, 0x5a, 0x67, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x09, 0x6d, 0x79, 0x2d, 0x74, 0x6f, 0x70, 0x69, 0x63, 0xb1, 0xfa, 0x72, 0xa9, 0x70,
+            0xf1, 0x4e, 0x91, 0xb2, 0x6f, 0xe3, 0xe2, 0x11, 0x1c, 0x72, 0x51, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let mut bytes_mut = BytesMut::from(metadata_response);
+        let mut tracked_requests = BTreeMap::new();
+        let correlation_id = 3;
+        let api_version = 12;
+        tracked_requests.insert(correlation_id, (ApiKey::Metadata, api_version));
+        let resp: Result<_, KafkaProtocolError<()>> = parse_response(&mut bytes_mut, &mut tracked_requests).await;
+        let resp = resp.unwrap();
+        let resp = resp.unwrap();
+        assert_eq!(
+            resp,
+            KafkaResponse::MetadataResponse(
+                MetadataResponse::default()
+                    .with_brokers(vec![MetadataResponseBroker::default()
+                        .with_node_id(BrokerId(1))
+                        .with_host(StrBytes::from("localhost"))
+                        .with_port(29092)])
+                    .with_cluster_id(Some(StrBytes::from("q8L0jMpRTAa_LOItNbMVZg")))
+                    .with_controller_id(BrokerId(1))
+                    .with_topics(vec![MetadataResponseTopic::default()
+                        .with_name(Some(TopicName(StrBytes::from("my-topic"))))
+                        .with_topic_id(uuid::Uuid::parse_str("b1fa72a9-70f1-4e91-b26f-e3e2111c7251").unwrap())
+                        .with_partitions(vec![MetadataResponsePartition::default()
+                            .with_leader_id(BrokerId(1))
+                            .with_replica_nodes(vec![BrokerId(1)])
+                            .with_leader_epoch(0)
+                            .with_isr_nodes(vec![BrokerId(1)])])])
+            )
+        );
+    }
+}
