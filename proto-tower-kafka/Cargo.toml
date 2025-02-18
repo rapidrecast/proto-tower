@@ -20,8 +20,7 @@ parser-helper = "0.1.0"
 proto-tower-util = { version = "0.1.6", path = "../proto-tower-util" }
 async-trait = "0.1.85"
 bytes = "1.9.0"
-#kafka-protocol = { version = "0.14.0" }
-kafka-protocol = { git = "https://github.com/phughk/kafka-protocol-rs", branch = "107-conflicting-implicit-trait-impl" }
+kafka-protocol = { version = "0.14.1" }
 paste = "1.0.15"
 uuid = "1.12.1"
 
