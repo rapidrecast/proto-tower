@@ -99,7 +99,7 @@ webrtc-server = ["webrtc-data", "proto-tower-webrtc/server"]
 proto-tower-dtls = { version = "0.1.5", path = "proto-tower-dtls", optional = true, features = ['data'] }
 proto-tower-grpc = { version = "0.1.5", path = "proto-tower-grpc", optional = true, features = ['data'] }
 proto-tower-http-1 = { version = "0.1.6", path = "proto-tower-http-1", optional = true, features = ['data'] }
-proto-tower-http-2 = { version = "0.1.5", path = "proto-tower-http-2", optional = true, features = ['data'] }
+proto-tower-http-2 = { version = "0.1.6", path = "proto-tower-http-2", optional = true, features = ['data'] }
 proto-tower-http-3 = { version = "0.1.5", path = "proto-tower-http-3", optional = true, features = ['data'] }
 proto-tower-ice = { version = "0.1.5", path = "proto-tower-ice", optional = true, features = ['data'] }
 proto-tower-kafka = { version = "0.1.6", path = "proto-tower-kafka", optional = true, features = ['data'] }
